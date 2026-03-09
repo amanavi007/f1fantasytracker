@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { adminFetch } from "@/lib/admin-client";
+import { useAdminUnlocked } from "@/hooks/use-admin-unlocked";
 import { ParsedScreenshotResult, Player, ScreenshotUpload } from "@/lib/types";
 
 interface Props {
@@ -51,6 +53,7 @@ function parseNullableNumber(value: string) {
 }
 
 export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, players, autoAssigned }: Props) {
+  const unlocked = useAdminUnlocked();
   const [rows, setRows] = useState<EditableLeaderboardRow[]>(toEditableRows(parsed));
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
@@ -107,7 +110,7 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
       score: parseNullableNumber(row.score)
     }));
 
-    const response = await fetch(`/api/parsed-results/${parsed.id}`, {
+    const response = await adminFetch(`/api/parsed-results/${parsed.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -203,32 +206,48 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
                   {parsedRows.map((row, index) => (
                     <tr key={row.id} className="border-t border-border/40">
                       <td className="px-2 py-1">
-                        <Input
-                          value={rows[index]?.rank ?? ""}
-                          onChange={(e) => updateRow(index, "rank", e.target.value)}
-                          className="h-8"
-                        />
+                        {unlocked ? (
+                          <Input
+                            value={rows[index]?.rank ?? ""}
+                            onChange={(e) => updateRow(index, "rank", e.target.value)}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span>{row.rank ?? "-"}</span>
+                        )}
                       </td>
                       <td className="px-2 py-1">
-                        <Input
-                          value={rows[index]?.team_name ?? ""}
-                          onChange={(e) => updateRow(index, "team_name", e.target.value)}
-                          className="h-8"
-                        />
+                        {unlocked ? (
+                          <Input
+                            value={rows[index]?.team_name ?? ""}
+                            onChange={(e) => updateRow(index, "team_name", e.target.value)}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span>{row.teamName || "-"}</span>
+                        )}
                       </td>
                       <td className="px-2 py-1">
-                        <Input
-                          value={rows[index]?.owner_name ?? ""}
-                          onChange={(e) => updateRow(index, "owner_name", e.target.value)}
-                          className="h-8"
-                        />
+                        {unlocked ? (
+                          <Input
+                            value={rows[index]?.owner_name ?? ""}
+                            onChange={(e) => updateRow(index, "owner_name", e.target.value)}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span>{row.ownerName || "-"}</span>
+                        )}
                       </td>
                       <td className="px-2 py-1">
-                        <Input
-                          value={rows[index]?.score ?? ""}
-                          onChange={(e) => updateRow(index, "score", e.target.value)}
-                          className="h-8"
-                        />
+                        {unlocked ? (
+                          <Input
+                            value={rows[index]?.score ?? ""}
+                            onChange={(e) => updateRow(index, "score", e.target.value)}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span>{row.score ?? "-"}</span>
+                        )}
                       </td>
                       <td className="px-2 py-1">
                         {row.mappedPlayerName ? (
@@ -243,31 +262,39 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
               </table>
             </div>
           )}
-          <div className="mt-2">
-            <Button variant="outline" size="sm" onClick={addRow} disabled={saving}>
-              Add Row
-            </Button>
-          </div>
+          {unlocked ? (
+            <div className="mt-2">
+              <Button variant="outline" size="sm" onClick={addRow} disabled={saving}>
+                Add Row
+              </Button>
+            </div>
+          ) : null}
         </div>
 
-        <div>
-          <label className="text-xs uppercase tracking-[0.16em] text-mutedForeground">Correction Reason</label>
-          <Textarea
-            placeholder="Optional note for audit log"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </div>
+        {unlocked ? (
+          <>
+            <div>
+              <label className="text-xs uppercase tracking-[0.16em] text-mutedForeground">Correction Reason</label>
+              <Textarea
+                placeholder="Optional note for audit log"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
 
-        <div className="flex gap-2">
-          <Button variant="subtle" disabled={saving} onClick={() => patchParsedResult(false)}>
-            {saving ? "Saving..." : "Save Correction"}
-          </Button>
-          <Button disabled={saving} onClick={() => patchParsedResult(true)}>
-            {saving ? "Saving..." : "Approve Record"}
-          </Button>
-        </div>
-        {message ? <p className="text-xs text-mutedForeground">{message}</p> : null}
+            <div className="flex gap-2">
+              <Button variant="subtle" disabled={saving} onClick={() => patchParsedResult(false)}>
+                {saving ? "Saving..." : "Save Correction"}
+              </Button>
+              <Button disabled={saving} onClick={() => patchParsedResult(true)}>
+                {saving ? "Saving..." : "Approve Record"}
+              </Button>
+            </div>
+            {message ? <p className="text-xs text-mutedForeground">{message}</p> : null}
+          </>
+        ) : (
+          <p className="text-xs text-mutedForeground">Admin unlock required to edit or approve records.</p>
+        )}
       </div>
     </Card>
   );

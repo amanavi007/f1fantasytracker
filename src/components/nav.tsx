@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Flag, Gauge, GalleryHorizontal, ScanSearch, ShieldAlert, Users } from "lucide-react";
+import { AdminUnlock } from "@/components/admin-unlock";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -42,6 +43,9 @@ export function SideNav() {
           );
         })}
       </nav>
+      <div className="mt-6">
+        <AdminUnlock />
+      </div>
     </aside>
   );
 }
@@ -53,7 +57,10 @@ export function MobileNav() {
   return (
     <>
       <div className="sticky top-0 z-30 border-b border-border/70 bg-black/40 p-3 backdrop-blur lg:hidden">
-        <p className="font-display text-sm tracking-[0.2em] text-white">F1 PUNISHMENT</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-display text-sm tracking-[0.2em] text-white">F1 PUNISHMENT</p>
+          <AdminUnlock />
+        </div>
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
           {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

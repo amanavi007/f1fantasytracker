@@ -4,8 +4,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { adminFetch } from "@/lib/admin-client";
+import { useAdminUnlocked } from "@/hooks/use-admin-unlocked";
 
 export function PlayerCreateForm() {
+  const unlocked = useAdminUnlocked();
   const [displayName, setDisplayName] = useState("");
   const [realName, setRealName] = useState("");
   const [team1Name, setTeam1Name] = useState("");
@@ -20,7 +23,7 @@ export function PlayerCreateForm() {
     setSaving(true);
     setMessage(null);
 
-    const response = await fetch("/api/players", {
+    const response = await adminFetch("/api/players", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -47,6 +50,10 @@ export function PlayerCreateForm() {
 
     setMessage("Player saved. Refreshing...");
     window.location.reload();
+  }
+
+  if (!unlocked) {
+    return <p className="text-sm text-mutedForeground">Admin unlock required to add or edit players.</p>;
   }
 
   return (

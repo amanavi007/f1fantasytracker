@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { adminFetch } from "@/lib/admin-client";
+import { useAdminUnlocked } from "@/hooks/use-admin-unlocked";
 
 export function FinalizeGpButton({ gpId, isFinalized }: { gpId: string; isFinalized: boolean }) {
+  const unlocked = useAdminUnlocked();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -11,7 +14,7 @@ export function FinalizeGpButton({ gpId, isFinalized }: { gpId: string; isFinali
     setLoading(true);
     setMessage(null);
 
-    const response = await fetch(`/api/gps/${gpId}/finalize`, {
+    const response = await adminFetch(`/api/gps/${gpId}/finalize`, {
       method: "POST"
     });
 
@@ -24,6 +27,10 @@ export function FinalizeGpButton({ gpId, isFinalized }: { gpId: string; isFinali
 
     setMessage(isFinalized ? "GP refreshed." : "GP finalized and locked.");
     window.location.reload();
+  }
+
+  if (!unlocked) {
+    return null;
   }
 
   return (

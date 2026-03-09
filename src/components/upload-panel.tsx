@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { adminFetch } from "@/lib/admin-client";
+import { useAdminUnlocked } from "@/hooks/use-admin-unlocked";
 import { Gp, ScreenshotUpload } from "@/lib/types";
 
 export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUpload[] }) {
+  const unlocked = useAdminUnlocked();
   const router = useRouter();
   const [gpId, setGpId] = useState(gps.find((g) => g.status !== "finalized")?.id ?? gps[0]?.id);
   const [files, setFiles] = useState<FileList | null>(null);
@@ -39,7 +42,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
       formData.append("files", file);
     }
 
-    const response = await fetch("/api/uploads", {
+    const response = await adminFetch("/api/uploads", {
       method: "POST",
       body: formData
     });
@@ -60,7 +63,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
 
     const parseResponses = await Promise.all(
       payload.uploads.map((upload) =>
-        fetch("/api/parse-screenshot", {
+        adminFetch("/api/parse-screenshot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ screenshotId: upload.id })
@@ -127,7 +130,11 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
         <div className="mt-4 rounded-xl border border-dashed border-border p-6 text-center">
           <UploadCloud className="mx-auto h-10 w-10 text-accent" />
           <p className="mt-2 text-sm text-mutedForeground">Drag screenshots here or browse files.</p>
-          <Input type="file" className="mx-auto mt-4 max-w-md" multiple onChange={(e) => setFiles(e.target.files)} />
+          {unlocked ? (
+            <Input type="file" className="mx-auto mt-4 max-w-md" multiple onChange={(e) => setFiles(e.target.files)} />
+          ) : (
+            <p className="mt-4 text-sm text-mutedForeground">Admin unlock required to upload or parse screenshots.</p>
+          )}
           {files?.length ? (
             <div className="mx-auto mt-3 max-w-xl rounded-md border border-border/60 bg-black/20 p-2 text-left text-xs text-mutedForeground">
               {Array.from(files)
@@ -139,7 +146,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
             </div>
           ) : null}
           <div className="mt-4 flex justify-center gap-2">
-            <Button disabled={uploading} onClick={() => uploadAndParse()}>
+            <Button disabled={uploading || !unlocked} onClick={() => uploadAndParse()}>
               {uploading ? "Uploading + Parsing..." : "Upload + Auto Parse"}
             </Button>
           </div>

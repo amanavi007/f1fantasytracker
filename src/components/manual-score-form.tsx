@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { adminFetch } from "@/lib/admin-client";
+import { useAdminUnlocked } from "@/hooks/use-admin-unlocked";
 
 export function ManualScoreForm({ gpId, playerId }: { gpId: string; playerId: string }) {
+  const unlocked = useAdminUnlocked();
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
   const [saving, setSaving] = useState(false);
@@ -14,7 +17,7 @@ export function ManualScoreForm({ gpId, playerId }: { gpId: string; playerId: st
     setSaving(true);
     setMessage(null);
 
-    const response = await fetch(`/api/gps/${gpId}/scores`, {
+    const response = await adminFetch(`/api/gps/${gpId}/scores`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -33,6 +36,10 @@ export function ManualScoreForm({ gpId, playerId }: { gpId: string; playerId: st
 
     setMessage("Saved. Refreshing...");
     window.location.reload();
+  }
+
+  if (!unlocked) {
+    return <span className="mt-2 block text-xs text-mutedForeground">Admin unlock required to edit scores.</span>;
   }
 
   return (

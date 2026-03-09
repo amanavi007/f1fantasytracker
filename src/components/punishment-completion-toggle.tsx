@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { adminFetch } from "@/lib/admin-client";
+import { useAdminUnlocked } from "@/hooks/use-admin-unlocked";
 
 interface Props {
   gpId: string;
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export function PunishmentCompletionToggle({ gpId, playerId, initialCompleted }: Props) {
+  const unlocked = useAdminUnlocked();
   const router = useRouter();
   const [completed, setCompleted] = useState(initialCompleted);
   const [loading, setLoading] = useState(false);
@@ -19,7 +22,7 @@ export function PunishmentCompletionToggle({ gpId, playerId, initialCompleted }:
     const next = !completed;
     setLoading(true);
 
-    const response = await fetch("/api/punishments/completion", {
+    const response = await adminFetch("/api/punishments/completion", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ gpId, playerId, completed: next })
@@ -31,6 +34,10 @@ export function PunishmentCompletionToggle({ gpId, playerId, initialCompleted }:
     }
 
     setLoading(false);
+  }
+
+  if (!unlocked) {
+    return <span className="text-xs text-mutedForeground">{completed ? "Done" : "Pending"}</span>;
   }
 
   return (
