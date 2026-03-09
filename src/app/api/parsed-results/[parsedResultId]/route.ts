@@ -7,6 +7,17 @@ const schema = z.object({
   detectedAccountName: z.string().optional(),
   team1Score: z.number().nullable().optional(),
   team2Score: z.number().nullable().optional(),
+  parsedLeaderboardRows: z
+    .array(
+      z.object({
+        rank: z.number().nullable().optional(),
+        team_name: z.string().nullable().optional(),
+        owner_name: z.string().nullable().optional(),
+        score: z.number().nullable().optional(),
+        team_slot_hint: z.enum(["T1", "T2"]).nullable().optional()
+      })
+    )
+    .optional(),
   approved: z.boolean().optional(),
   editedBy: z.string().default("admin"),
   reason: z.string().optional()
@@ -24,7 +35,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ pa
 
   const { data: parsed, error: parsedError } = await supabase
     .from("parsed_screenshot_results")
-    .select("id, screenshot_id, detected_account_name, parsed_entities")
+    .select("id, screenshot_id, detected_account_name, parsed_entities, approved")
     .eq("id", parsedResultId)
     .single();
 
@@ -38,11 +49,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ pa
     .eq("id", parsed.screenshot_id)
     .single();
 
-  const originalEntities = (parsed.parsed_entities ?? {}) as Record<string, string | number | null>;
+  const originalEntities = (parsed.parsed_entities ?? {}) as Record<string, unknown>;
   const nextEntities = {
     ...originalEntities,
     ...(payload.team1Score !== undefined ? { team_1_score: payload.team1Score } : {}),
-    ...(payload.team2Score !== undefined ? { team_2_score: payload.team2Score } : {})
+    ...(payload.team2Score !== undefined ? { team_2_score: payload.team2Score } : {}),
+    ...(payload.parsedLeaderboardRows !== undefined ? { leaderboard_rows: payload.parsedLeaderboardRows } : {})
   };
 
   const edits: Array<{ field: string; from: string; to: string }> = [];
@@ -71,12 +83,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ pa
     });
   }
 
+  if (payload.parsedLeaderboardRows !== undefined) {
+    const before = JSON.stringify(originalEntities.leaderboard_rows ?? []);
+    const after = JSON.stringify(payload.parsedLeaderboardRows);
+    if (before !== after) {
+      edits.push({
+        field: "leaderboard_rows",
+        from: before,
+        to: after
+      });
+    }
+  }
+
   await supabase
     .from("parsed_screenshot_results")
     .update({
       detected_account_name: payload.detectedAccountName ?? parsed.detected_account_name,
       parsed_entities: nextEntities,
-      approved: payload.approved ?? false,
+      approved: payload.approved ?? parsed.approved,
       updated_at: new Date().toISOString()
     })
     .eq("id", parsedResultId);

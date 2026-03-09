@@ -22,43 +22,49 @@ interface Props {
   };
 }
 
-export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, players, autoAssigned }: Props) {
-  const fallbackTeam1 =
-    parsed.parsedEntities.team_1_score ??
-    (Number.isFinite(parsed.detectedScores[0]) ? parsed.detectedScores[0] : null) ??
-    autoAssigned?.team1Score ??
-    "";
-  const fallbackTeam2 =
-    parsed.parsedEntities.team_2_score ??
-    (Number.isFinite(parsed.detectedScores[1]) ? parsed.detectedScores[1] : null) ??
-    autoAssigned?.team2Score ??
-    "";
+interface EditableLeaderboardRow {
+  rank: string;
+  team_name: string;
+  owner_name: string;
+  score: string;
+  team_slot_hint: "T1" | "T2" | "";
+}
 
-  const [account, setAccount] = useState(parsed.detectedAccountName ?? "");
-  const [team1Score, setTeam1Score] = useState(String(fallbackTeam1));
-  const [team2Score, setTeam2Score] = useState(String(fallbackTeam2));
+function toEditableRows(parsed: ParsedScreenshotResult): EditableLeaderboardRow[] {
+  const rows = Array.isArray(parsed.parsedEntities.leaderboard_rows)
+    ? parsed.parsedEntities.leaderboard_rows.filter(
+        (row): row is Record<string, unknown> => Boolean(row) && typeof row === "object"
+      )
+    : [];
+
+  return rows.map((row) => ({
+    rank: row.rank === null || row.rank === undefined ? "" : String(row.rank),
+    team_name: typeof row.team_name === "string" ? row.team_name : "",
+    owner_name: typeof row.owner_name === "string" ? row.owner_name : "",
+    score: row.score === null || row.score === undefined ? "" : String(row.score),
+    team_slot_hint: row.team_slot_hint === "T1" || row.team_slot_hint === "T2" ? row.team_slot_hint : ""
+  }));
+}
+
+function parseNullableNumber(value: string) {
+  if (!value.trim()) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, players, autoAssigned }: Props) {
+  const [rows, setRows] = useState<EditableLeaderboardRow[]>(toEditableRows(parsed));
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const matchedPlayer = useMemo(() => {
-    const lower = account.toLowerCase();
-    return players.find((p) => p.aliases.some((a) => a.toLowerCase() === lower));
-  }, [account, players]);
-
   const parsedRows = useMemo(() => {
-    const rows = Array.isArray(parsed.parsedEntities.leaderboard_rows)
-      ? parsed.parsedEntities.leaderboard_rows.filter(
-          (row): row is Record<string, unknown> => Boolean(row) && typeof row === "object"
-        )
-      : [];
-
     return rows.map((row, index) => {
-      const teamName = typeof row.team_name === "string" ? row.team_name : "";
-      const ownerName = typeof row.owner_name === "string" ? row.owner_name : "";
-      const rank = Number.isFinite(Number(row.rank)) ? Number(row.rank) : null;
-      const score = Number.isFinite(Number(row.score)) ? Number(row.score) : null;
-      const slotHint = typeof row.team_slot_hint === "string" ? row.team_slot_hint : null;
+      const teamName = row.team_name;
+      const ownerName = row.owner_name;
+      const rank = parseNullableNumber(row.rank);
+      const score = parseNullableNumber(row.score);
+      const slotHint = row.team_slot_hint || null;
 
       const lowerTeam = teamName.trim().toLowerCase();
       const lowerOwner = ownerName.trim().toLowerCase();
@@ -84,19 +90,33 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
         mappedPlayerName: mappedPlayer?.displayName ?? null
       };
     });
-  }, [parsed.id, parsed.parsedEntities.leaderboard_rows, players]);
+  }, [rows, players, parsed.id]);
+
+  function updateRow(index: number, key: keyof EditableLeaderboardRow, value: string) {
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
+  }
+
+  function addRow() {
+    setRows((prev) => [...prev, { rank: "", team_name: "", owner_name: "", score: "", team_slot_hint: "" }]);
+  }
 
   async function patchParsedResult(approved: boolean) {
     setSaving(true);
     setMessage(null);
 
+    const parsedLeaderboardRows = rows.map((row) => ({
+      rank: parseNullableNumber(row.rank),
+      team_name: row.team_name.trim() || null,
+      owner_name: row.owner_name.trim() || null,
+      score: parseNullableNumber(row.score),
+      team_slot_hint: row.team_slot_hint || null
+    }));
+
     const response = await fetch(`/api/parsed-results/${parsed.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        detectedAccountName: account,
-        team1Score: team1Score ? Number(team1Score) : null,
-        team2Score: team2Score ? Number(team2Score) : null,
+        parsedLeaderboardRows,
         approved,
         reason
       })
@@ -117,7 +137,7 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
     <Card className="grid gap-5 lg:grid-cols-[1.1fr_1fr]">
       <div>
         <CardTitle className="font-display text-xl">{screenshot?.fileName ?? "Screenshot"}</CardTitle>
-        <CardDescription className="mt-1">Review extraction, map alias, and approve record.</CardDescription>
+        <CardDescription className="mt-1">Review leaderboard rows, edit if needed, then submit.</CardDescription>
 
         <div className="mt-4 h-72 rounded-lg border border-border bg-gradient-to-br from-neutral-900 to-neutral-800 p-4">
           <p className="text-xs uppercase tracking-[0.18em] text-mutedForeground">Original Screenshot</p>
@@ -162,34 +182,19 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
           </div>
         </div>
 
-        <div className="space-y-3">
-          <label className="text-xs uppercase tracking-[0.16em] text-mutedForeground">Detected Account / Alias</label>
-          <Input value={account} onChange={(e) => setAccount(e.target.value)} />
-          <p className="text-xs text-mutedForeground">
-            {matchedPlayer ? `Mapped to ${matchedPlayer.displayName}` : "No alias match. Map manually in players settings."}
-          </p>
-          {autoAssigned ? (
-            <p className="text-xs text-emerald-300">
-              Auto-assigned in DB: {autoAssigned.playerName ?? autoAssigned.playerId} | T1 {autoAssigned.team1Score ?? "-"} | T2 {autoAssigned.team2Score ?? "-"}
-            </p>
-          ) : (
-            <p className="text-xs text-amber-300">No auto-assigned DB scores for this parse record yet.</p>
-          )}
-        </div>
-
-        <div className="rounded-md border border-border/70 bg-black/20 p-3 text-xs text-mutedForeground">
-          <p className="uppercase tracking-[0.14em]">Extracted Snapshot</p>
-          <p className="mt-2">Detected team names: {parsed.detectedTeamNames.join(", ") || "None"}</p>
-          <p>Detected scores: {parsed.detectedScores.length ? parsed.detectedScores.join(", ") : "None"}</p>
-        </div>
+        {autoAssigned ? (
+          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-300">
+            Auto-assigned in DB: {autoAssigned.playerName ?? autoAssigned.playerId} | T1 {autoAssigned.team1Score ?? "-"} | T2 {autoAssigned.team2Score ?? "-"}
+          </div>
+        ) : null}
 
         <div className="rounded-md border border-border/70 bg-black/20 p-3">
           <p className="text-xs uppercase tracking-[0.14em] text-mutedForeground">Parsed Leaderboard Rows</p>
           {parsedRows.length === 0 ? (
             <p className="mt-2 text-xs text-amber-300">No leaderboard rows were extracted from this screenshot.</p>
           ) : (
-            <div className="mt-3 overflow-hidden rounded-md border border-border/60">
-              <table className="w-full text-xs">
+            <div className="mt-3 overflow-x-auto rounded-md border border-border/60">
+              <table className="min-w-[700px] w-full text-xs">
                 <thead className="bg-neutral-900/70 text-mutedForeground">
                   <tr>
                     <th className="px-2 py-1 text-left font-medium">Rank</th>
@@ -201,13 +206,47 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
                   </tr>
                 </thead>
                 <tbody>
-                  {parsedRows.map((row) => (
+                  {parsedRows.map((row, index) => (
                     <tr key={row.id} className="border-t border-border/40">
-                      <td className="px-2 py-1">{row.rank ?? "-"}</td>
-                      <td className="px-2 py-1">{row.teamName || "-"}</td>
-                      <td className="px-2 py-1">{row.ownerName || "-"}</td>
-                      <td className="px-2 py-1">{row.score ?? "-"}</td>
-                      <td className="px-2 py-1">{row.slotHint ?? "-"}</td>
+                      <td className="px-2 py-1">
+                        <Input
+                          value={rows[index]?.rank ?? ""}
+                          onChange={(e) => updateRow(index, "rank", e.target.value)}
+                          className="h-8"
+                        />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input
+                          value={rows[index]?.team_name ?? ""}
+                          onChange={(e) => updateRow(index, "team_name", e.target.value)}
+                          className="h-8"
+                        />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input
+                          value={rows[index]?.owner_name ?? ""}
+                          onChange={(e) => updateRow(index, "owner_name", e.target.value)}
+                          className="h-8"
+                        />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input
+                          value={rows[index]?.score ?? ""}
+                          onChange={(e) => updateRow(index, "score", e.target.value)}
+                          className="h-8"
+                        />
+                      </td>
+                      <td className="px-2 py-1">
+                        <select
+                          value={rows[index]?.team_slot_hint ?? ""}
+                          onChange={(e) => updateRow(index, "team_slot_hint", e.target.value as "T1" | "T2" | "")}
+                          className="h-8 rounded-md border border-border/70 bg-background px-2 text-xs"
+                        >
+                          <option value="">-</option>
+                          <option value="T1">T1</option>
+                          <option value="T2">T2</option>
+                        </select>
+                      </td>
                       <td className="px-2 py-1">
                         {row.mappedPlayerName ? (
                           <span className="text-emerald-300">Mapped: {row.mappedPlayerName}</span>
@@ -221,20 +260,10 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
               </table>
             </div>
           )}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="text-xs uppercase tracking-[0.16em] text-mutedForeground">Team 1 GP Score</label>
-            <Input value={team1Score} onChange={(e) => setTeam1Score(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-[0.16em] text-mutedForeground">Team 2 GP Score</label>
-            <Input
-              value={team2Score}
-              onChange={(e) => setTeam2Score(e.target.value)}
-              className={parsed.missingFields.includes("team_2_score") ? "border-amber-400/70" : ""}
-            />
+          <div className="mt-2">
+            <Button variant="outline" size="sm" onClick={addRow} disabled={saving}>
+              Add Row
+            </Button>
           </div>
         </div>
 
