@@ -3,22 +3,17 @@ import { Flag, ShieldAlert } from "lucide-react";
 import { CircuitVisualization } from "@/components/circuit-visualization";
 import { StatCard } from "@/components/stat-card";
 import { GpStatusBadge } from "@/components/status-badge";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { computePunishmentBoard, getGpOverview, getGps } from "@/lib/data";
+import { getGpOverview, getGps } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  const [gps, punishmentBoardRaw] = await Promise.all([
-    getGps(),
-    computePunishmentBoard()
-  ]);
+  const [gps] = await Promise.all([getGps()]);
 
   const latestFinalizedGp = [...gps].reverse().find((gp) => gp.status === "finalized");
   const activeGp = gps.find((gp) => gp.status !== "finalized") ?? gps[0];
   const latestResult = latestFinalizedGp ? await getGpOverview(latestFinalizedGp.id) : null;
-  const punishmentBoard = punishmentBoardRaw.sort((a, b) => b.losses - a.losses);
   const todayIso = new Date().toISOString().slice(0, 10);
   const latestPastIndex = [...gps]
     .map((gp, index) => ({ gp, index }))
@@ -27,7 +22,7 @@ export default async function DashboardPage() {
     .pop();
   const featuredIndex = latestPastIndex ?? 0;
   const featuredGp = gps[featuredIndex];
-  const compactRaceList = gps.filter((_, index) => index !== featuredIndex).slice(Math.max(0, featuredIndex - 2), Math.max(0, featuredIndex - 2) + 5);
+  const compactRaceList = gps.filter((_, index) => index !== featuredIndex);
 
   return (
     <div className="space-y-6">
@@ -39,7 +34,7 @@ export default async function DashboardPage() {
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button asChild>
-            <Link href="/upload">Batch Upload Screenshots</Link>
+            <Link href="/upload">Upload Screenshot</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href="/gps">Open GP History</Link>
@@ -47,7 +42,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
+      <section className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-2">
         <StatCard
           title="Latest GP Loser"
           value={
@@ -75,10 +70,10 @@ export default async function DashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section>
         <Card>
           <CardTitle>Current Race Control</CardTitle>
-          <CardDescription className="mt-1">Featured latest race plus compact recent rounds list.</CardDescription>
+          <CardDescription className="mt-1">Featured latest race plus a scroll list of all other races (5 visible at a time).</CardDescription>
           {featuredGp ? (
             <div className="mt-4 rounded-lg border border-accent/40 bg-accent/10 p-4">
               <div className="flex items-center justify-between gap-2">
@@ -97,7 +92,7 @@ export default async function DashboardPage() {
             </div>
           ) : null}
 
-          <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+          <div className="mt-4 max-h-[360px] space-y-2 overflow-y-auto pr-1">
             {compactRaceList.map((gp) => (
               <div key={gp.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-black/20 px-3 py-2">
                 <div>
@@ -109,24 +104,6 @@ export default async function DashboardPage() {
                   <Button size="sm" variant="ghost" asChild>
                     <Link href={`/gps/${gp.id}`}>Open</Link>
                   </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card>
-          <CardTitle>Punishment Pressure Index</CardTitle>
-          <CardDescription className="mt-1">Most exposed profiles based on finalized GPs.</CardDescription>
-          <div className="mt-4 space-y-2">
-            {punishmentBoard.map((row) => (
-              <div key={row.playerId} className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">{row.playerName}</p>
-                  {row.losses >= 1 ? <Badge variant="danger">Fraud Watch</Badge> : <Badge variant="success">Safe</Badge>}
-                </div>
-                <div className="text-sm text-mutedForeground">
-                  Lasts: <span className="text-white">{row.losses}</span> | 2nd Lasts: <span className="text-white">{row.secondLasts}</span>
                 </div>
               </div>
             ))}

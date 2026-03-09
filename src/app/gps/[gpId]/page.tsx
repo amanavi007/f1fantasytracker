@@ -8,6 +8,7 @@ import { TD, TH, TBody, THead, TR, Table } from "@/components/ui/table";
 import { FinalizeGpButton } from "@/components/finalize-gp-button";
 import { GpWorkflowStrip } from "@/components/gp-workflow-strip";
 import { ManualScoreForm } from "@/components/manual-score-form";
+import { AdminOnly } from "@/components/admin-only";
 import { getGpOverview } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
@@ -35,7 +36,9 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
         </div>
       </section>
 
-      <GpWorkflowStrip status={overview.gp.status} screenshots={overview.screenshots} parsed={overview.parsed} />
+      <AdminOnly>
+        <GpWorkflowStrip status={overview.gp.status} screenshots={overview.screenshots} parsed={overview.parsed} />
+      </AdminOnly>
 
       <Card>
         <CardTitle>Ranking (Lowest Combined = Loser)</CardTitle>
@@ -76,41 +79,43 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
         </div>
       </Card>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardTitle>Submission Status</CardTitle>
-          <div className="mt-4 space-y-2">
-            {overview.entries.map((entry) => {
-              const player = overview.players.find((p) => p.id === entry.playerId);
-              return (
-                <div key={entry.id} className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2">
-                  <div>
-                    <span>{player?.displayName ?? entry.playerId}</span>
-                    <ManualScoreForm gpId={gpId} playerId={entry.playerId} />
+      <AdminOnly>
+        <section className="grid gap-4 xl:grid-cols-2">
+          <Card>
+            <CardTitle>Submission Status</CardTitle>
+            <div className="mt-4 space-y-2">
+              {overview.entries.map((entry) => {
+                const player = overview.players.find((p) => p.id === entry.playerId);
+                return (
+                  <div key={entry.id} className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2">
+                    <div>
+                      <span>{player?.displayName ?? entry.playerId}</span>
+                      <ManualScoreForm gpId={gpId} playerId={entry.playerId} />
+                    </div>
+                    <SubmissionStatusBadge status={entry.status} />
                   </div>
-                  <SubmissionStatusBadge status={entry.status} />
-                </div>
-              );
-            })}
-          </div>
-        </Card>
+                );
+              })}
+            </div>
+          </Card>
 
-        <Card>
-          <CardTitle>Screenshot Gallery</CardTitle>
-          <CardDescription className="mt-1">Original uploads retained for audits and disputes.</CardDescription>
-          <div className="mt-4 space-y-2">
-            {overview.screenshots.map((shot) => (
-              <div key={shot.id} className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2 text-sm">
-                <div>
-                  <p className="text-white">{shot.fileName}</p>
-                  <p className="text-xs text-mutedForeground">{shot.storagePath}</p>
+          <Card>
+            <CardTitle>Screenshot Gallery</CardTitle>
+            <CardDescription className="mt-1">Original uploads retained for audits and disputes.</CardDescription>
+            <div className="mt-4 space-y-2">
+              {overview.screenshots.map((shot) => (
+                <div key={shot.id} className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2 text-sm">
+                  <div>
+                    <p className="text-white">{shot.fileName}</p>
+                    <p className="text-xs text-mutedForeground">{shot.storagePath}</p>
+                  </div>
+                  <Badge variant="neutral">Open</Badge>
                 </div>
-                <Badge variant="neutral">Open</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
+              ))}
+            </div>
+          </Card>
+        </section>
+      </AdminOnly>
     </div>
   );
 }
