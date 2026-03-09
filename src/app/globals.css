@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 224 22% 7%;
+  --foreground: 220 20% 95%;
+  --card: 225 22% 10%;
+  --card-foreground: 220 20% 96%;
+  --muted: 224 14% 16%;
+  --muted-foreground: 218 11% 66%;
+  --border: 223 18% 24%;
+  --accent: 0 84% 58%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 0 84% 58%;
+  --danger: 0 84% 58%;
+  --warning: 38 92% 50%;
+  --success: 151 68% 38%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  @apply font-body text-foreground antialiased;
+  background-image:
+    radial-gradient(circle at 20% -20%, rgba(220, 38, 38, 0.18), transparent 32%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.06), transparent 28%),
+    linear-gradient(180deg, #090b10 0%, #10131b 55%, #0a0c11 100%);
+  min-height: 100vh;
+}
+
+.telemetry-divider {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01));
+  height: 1px;
+}
