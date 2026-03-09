@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Flag, ShieldAlert } from "lucide-react";
-import { CircuitVisualization } from "@/components/circuit-visualization";
 import { StatCard } from "@/components/stat-card";
 import { GpStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -66,7 +65,13 @@ export default async function DashboardPage() {
               <Flag />
             </div>
           </div>
-          <CircuitVisualization gpName={activeGp?.name ?? "Current GP"} />
+          <div className="mt-4 rounded-lg border border-border/70 bg-black/20 p-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-mutedForeground">Current GP Status</p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-sm text-white">{activeGp?.name ?? "No active GP selected"}</p>
+              {activeGp ? <span className="text-xs text-accent">Round {activeGp.round}</span> : null}
+            </div>
+          </div>
         </Card>
       </section>
 

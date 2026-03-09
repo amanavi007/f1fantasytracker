@@ -17,6 +17,19 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
   const overview = await getGpOverview(gpId);
   if (!overview) return notFound();
 
+  const completedRows = overview.rows.filter((row) => row.combined !== null).length;
+  const completionPct = overview.rows.length > 0 ? Math.round((completedRows / overview.rows.length) * 100) : 0;
+  const loserNames = overview.punishment.loserPlayerIds
+    .map((id) => overview.players.find((p) => p.id === id)?.displayName ?? id)
+    .join(", ");
+  const secondNames = overview.punishment.secondLastPlayerIds
+    .map((id) => overview.players.find((p) => p.id === id)?.displayName ?? id)
+    .join(", ");
+  const podium = [...overview.rows]
+    .filter((row) => row.combined !== null)
+    .sort((a, b) => (a.combined ?? 0) - (b.combined ?? 0))
+    .slice(0, 3);
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border/70 bg-black/20 p-6">
@@ -78,6 +91,42 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
           </Table>
         </div>
       </Card>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardTitle>Race Snapshot</CardTitle>
+          <CardDescription className="mt-1">Public quick view of current punishment state.</CardDescription>
+          <div className="mt-3 space-y-2 text-sm">
+            <p className="text-mutedForeground">
+              Loser: <span className="text-white">{loserNames || "TBD"}</span>
+            </p>
+            <p className="text-mutedForeground">
+              Second Last: <span className="text-white">{secondNames || "TBD"}</span>
+            </p>
+            <p className="text-mutedForeground">
+              Data Complete: <span className="text-white">{completedRows}/{overview.rows.length} ({completionPct}%)</span>
+            </p>
+          </div>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardTitle>Podium Pulse</CardTitle>
+          <CardDescription className="mt-1">Lowest combined scores currently most at risk this GP.</CardDescription>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {podium.length === 0 ? (
+              <p className="text-sm text-mutedForeground">No complete totals yet.</p>
+            ) : (
+              podium.map((row, index) => (
+                <div key={row.playerId} className="rounded-md border border-border/70 bg-black/20 px-3 py-2">
+                  <p className="text-xs uppercase tracking-[0.12em] text-mutedForeground">#{index + 1}</p>
+                  <p className="mt-1 text-sm text-white">{row.playerName}</p>
+                  <p className="text-xs text-mutedForeground">Combined: {row.combined}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </section>
 
       <AdminOnly>
         <section className="grid gap-4 xl:grid-cols-2">
