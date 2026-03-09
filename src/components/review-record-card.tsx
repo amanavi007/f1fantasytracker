@@ -12,6 +12,7 @@ import { ParsedScreenshotResult, Player, ScreenshotUpload } from "@/lib/types";
 interface Props {
   parsed: ParsedScreenshotResult;
   screenshot?: ScreenshotUpload;
+  screenshotPreviewUrl?: string;
   players: Player[];
   autoAssigned?: {
     playerId: string;
@@ -21,7 +22,7 @@ interface Props {
   };
 }
 
-export function ReviewRecordCard({ parsed, screenshot, players, autoAssigned }: Props) {
+export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, players, autoAssigned }: Props) {
   const fallbackTeam1 =
     parsed.parsedEntities.team_1_score ??
     (Number.isFinite(parsed.detectedScores[0]) ? parsed.detectedScores[0] : null) ??
@@ -80,9 +81,17 @@ export function ReviewRecordCard({ parsed, screenshot, players, autoAssigned }: 
 
         <div className="mt-4 h-72 rounded-lg border border-border bg-gradient-to-br from-neutral-900 to-neutral-800 p-4">
           <p className="text-xs uppercase tracking-[0.18em] text-mutedForeground">Original Screenshot</p>
-          <p className="mt-6 text-sm text-mutedForeground">
-            Placeholder preview. In production this renders the Supabase storage image.
-          </p>
+          {screenshotPreviewUrl ? (
+            <div className="relative mt-3 h-[240px] overflow-hidden rounded-md border border-border/60">
+              <img
+                src={screenshotPreviewUrl}
+                alt={screenshot?.fileName ?? "Screenshot preview"}
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : (
+            <p className="mt-6 text-sm text-mutedForeground">Screenshot preview unavailable.</p>
+          )}
         </div>
 
         {parsed.warnings.length > 0 ? (
@@ -126,6 +135,12 @@ export function ReviewRecordCard({ parsed, screenshot, players, autoAssigned }: 
           ) : (
             <p className="text-xs text-amber-300">No auto-assigned DB scores for this parse record yet.</p>
           )}
+        </div>
+
+        <div className="rounded-md border border-border/70 bg-black/20 p-3 text-xs text-mutedForeground">
+          <p className="uppercase tracking-[0.14em]">Extracted Snapshot</p>
+          <p className="mt-2">Detected team names: {parsed.detectedTeamNames.join(", ") || "None"}</p>
+          <p>Detected scores: {parsed.detectedScores.length ? parsed.detectedScores.join(", ") : "None"}</p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">

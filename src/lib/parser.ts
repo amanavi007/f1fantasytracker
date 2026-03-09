@@ -47,10 +47,16 @@ function normalizeParsedResult(raw: unknown, screenshotId: string): ParsedScreen
 
   const parsedEntitiesRaw =
     value.parsed_entities && typeof value.parsed_entities === "object"
-      ? (value.parsed_entities as Record<string, string | number | null>)
+      ? (value.parsed_entities as Record<string, unknown>)
       : {};
 
-  const parsedEntities: Record<string, string | number | null> = {
+  const leaderboardRows = Array.isArray(parsedEntitiesRaw.leaderboard_rows)
+    ? parsedEntitiesRaw.leaderboard_rows.filter(
+        (row): row is Record<string, unknown> => Boolean(row) && typeof row === "object"
+      )
+    : [];
+
+  const parsedEntities: Record<string, unknown> = {
     account:
       typeof parsedEntitiesRaw.account === "string"
         ? parsedEntitiesRaw.account
@@ -76,7 +82,8 @@ function normalizeParsedResult(raw: unknown, screenshotId: string): ParsedScreen
         ? parsedEntitiesRaw.team_2_score
         : Number.isFinite(detectedScores[1])
           ? detectedScores[1]
-          : null
+          : null,
+    leaderboard_rows: leaderboardRows
   };
 
   return {
@@ -142,7 +149,16 @@ Return ONE JSON object ONLY (no markdown, no prose) with EXACT keys:
     "team_1_name": string|null,
     "team_1_score": number|null,
     "team_2_name": string|null,
-    "team_2_score": number|null
+    "team_2_score": number|null,
+    "leaderboard_rows": [
+      {
+        "rank": number|null,
+        "team_name": string|null,
+        "owner_name": string|null,
+        "score": number|null,
+        "team_slot_hint": "T1"|"T2"|null
+      }
+    ]
   },
   "confidence_by_field": {
     "gp_name": number,
@@ -158,6 +174,7 @@ Return ONE JSON object ONLY (no markdown, no prose) with EXACT keys:
 Parsing rules for this app:
 - The same real player controls exactly TWO fantasy teams.
 - If screenshot shows T1 and T2 cards/rows, map those into team_1_* and team_2_*.
+- If screenshot is a league table with many rows, fill parsed_entities.leaderboard_rows for every visible row.
 - Prefer points visible next to T1/T2 rows for team_1_score and team_2_score.
 - If only one score is visible, set the missing team score to null and include it in missing_fields.
 - If GP name is not visible, set gp_name to null and add warning.

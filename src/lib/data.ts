@@ -271,12 +271,29 @@ export async function getGpOverview(gpId: string) {
   const rows = buildGpRows(gpId, players, allScores);
   const punishment = computePunishmentForGp(gpId, players, allScores, settings.tieRule);
 
+  const screenshotPreviewUrls: Record<string, string> = {};
+  if (hasSupabaseServerEnv() && screenshots.length > 0) {
+    const supabase = getSupabaseServerClient();
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "screenshots";
+    const signed = await Promise.all(
+      screenshots.map(async (shot) => {
+        const { data } = await supabase.storage.from(bucket).createSignedUrl(shot.storagePath, 60 * 60);
+        return [shot.id, data?.signedUrl ?? ""] as const;
+      })
+    );
+
+    for (const [id, url] of signed) {
+      if (url) screenshotPreviewUrls[id] = url;
+    }
+  }
+
   return {
     gp,
     rows,
     punishment,
     entries,
     screenshots,
+    screenshotPreviewUrls,
     parsed,
     autoAssignedByParsedId,
     corrections,

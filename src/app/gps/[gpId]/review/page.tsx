@@ -43,6 +43,7 @@ export default async function GpReviewPage({ params }: { params: Promise<{ gpId:
             key={parsed.id}
             parsed={parsed}
             screenshot={overview.screenshots.find((s) => s.id === parsed.screenshotId)}
+            screenshotPreviewUrl={overview.screenshotPreviewUrls[parsed.screenshotId]}
             players={overview.players}
             autoAssigned={overview.autoAssignedByParsedId.get(parsed.id)}
           />

@@ -23,7 +23,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
   const filtered = useMemo(() => uploads.filter((s) => s.gpId === gpId), [gpId, uploads]);
   const selectedGp = gps.find((g) => g.id === gpId);
 
-  async function uploadBatch(runParse: boolean) {
+  async function uploadAndParse() {
     if (!gpId || !files || files.length === 0) {
       setMessage("Choose a GP and at least one screenshot.");
       return;
@@ -59,35 +59,33 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
     const lines: string[] = [];
     lines.push(`Uploaded ${payload.uploads.length}/${selectedFiles.length} screenshots.`);
 
-    if (runParse) {
-      const parseResponses = await Promise.all(
-        payload.uploads.map((upload) =>
-          fetch("/api/parse-screenshot", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ screenshotId: upload.id })
-          })
-        )
-      );
+    const parseResponses = await Promise.all(
+      payload.uploads.map((upload) =>
+        fetch("/api/parse-screenshot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ screenshotId: upload.id })
+        })
+      )
+    );
 
-      const parseOk = parseResponses.filter((res) => res.ok).length;
-      const parseFailed = parseResponses.length - parseOk;
-      lines.push(`Parsed ${parseOk}/${parseResponses.length} screenshots.`);
-      if (parseFailed > 0) {
-        const failedDetails = await Promise.all(
-          parseResponses.map(async (response, index) => {
-            if (response.ok) return null;
-            const body = (await response.json().catch(() => ({}))) as { error?: string };
-            return `Parse failed for upload #${index + 1}: ${body.error ?? `HTTP ${response.status}`}`;
-          })
-        );
-        for (const detail of failedDetails.filter(Boolean)) {
-          lines.push(detail as string);
-        }
+    const parseOk = parseResponses.filter((res) => res.ok).length;
+    const parseFailed = parseResponses.length - parseOk;
+    lines.push(`Parsed ${parseOk}/${parseResponses.length} screenshots.`);
+    if (parseFailed > 0) {
+      const failedDetails = await Promise.all(
+        parseResponses.map(async (response, index) => {
+          if (response.ok) return null;
+          const body = (await response.json().catch(() => ({}))) as { error?: string };
+          return `Parse failed for upload #${index + 1}: ${body.error ?? `HTTP ${response.status}`}`;
+        })
+      );
+      for (const detail of failedDetails.filter(Boolean)) {
+        lines.push(detail as string);
       }
     }
 
-    setMessage(runParse ? "Upload and parse completed." : "Upload completed.");
+    setMessage("Upload + auto-parse completed.");
     setDetails(lines);
     setUploading(false);
     router.refresh();
@@ -145,8 +143,8 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
       </Card>
 
       <Card>
-        <CardTitle>2. Upload Screenshots</CardTitle>
-        <CardDescription className="mt-1">Uploads go to Supabase storage + screenshot_uploads table.</CardDescription>
+        <CardTitle>2. Upload + Auto Parse</CardTitle>
+        <CardDescription className="mt-1">Each screenshot is uploaded, then parsed automatically.</CardDescription>
         <div className="mt-4 rounded-xl border border-dashed border-border p-6 text-center">
           <UploadCloud className="mx-auto h-10 w-10 text-accent" />
           <p className="mt-2 text-sm text-mutedForeground">Drag screenshots here or browse files.</p>
@@ -162,11 +160,8 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
             </div>
           ) : null}
           <div className="mt-4 flex justify-center gap-2">
-            <Button disabled={uploading} onClick={() => uploadBatch(false)}>
-              {uploading ? "Uploading..." : "Upload Batch"}
-            </Button>
-            <Button variant="outline" disabled={uploading} onClick={() => uploadBatch(true)}>
-              {uploading ? "Running..." : "Upload + Parse"}
+            <Button disabled={uploading} onClick={() => uploadAndParse()}>
+              {uploading ? "Uploading + Parsing..." : "Upload + Auto Parse"}
             </Button>
           </div>
           {message ? <p className="mt-3 text-sm text-mutedForeground">{message}</p> : null}

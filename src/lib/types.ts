@@ -71,7 +71,7 @@ export interface ParsedScreenshotResult {
   confidenceByField: Record<string, number>;
   missingFields: string[];
   warnings: string[];
-  parsedEntities: Record<string, string | number | null>;
+  parsedEntities: Record<string, unknown>;
   approved: boolean;
 }
 
