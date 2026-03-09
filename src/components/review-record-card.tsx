@@ -46,6 +46,46 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
     return players.find((p) => p.aliases.some((a) => a.toLowerCase() === lower));
   }, [account, players]);
 
+  const parsedRows = useMemo(() => {
+    const rows = Array.isArray(parsed.parsedEntities.leaderboard_rows)
+      ? parsed.parsedEntities.leaderboard_rows.filter(
+          (row): row is Record<string, unknown> => Boolean(row) && typeof row === "object"
+        )
+      : [];
+
+    return rows.map((row, index) => {
+      const teamName = typeof row.team_name === "string" ? row.team_name : "";
+      const ownerName = typeof row.owner_name === "string" ? row.owner_name : "";
+      const rank = Number.isFinite(Number(row.rank)) ? Number(row.rank) : null;
+      const score = Number.isFinite(Number(row.score)) ? Number(row.score) : null;
+      const slotHint = typeof row.team_slot_hint === "string" ? row.team_slot_hint : null;
+
+      const lowerTeam = teamName.trim().toLowerCase();
+      const lowerOwner = ownerName.trim().toLowerCase();
+      const matchedByTeam = players.find(
+        (player) =>
+          player.team1Name.trim().toLowerCase() === lowerTeam || player.team2Name.trim().toLowerCase() === lowerTeam
+      );
+      const matchedByOwner = players.find(
+        (player) =>
+          player.displayName.trim().toLowerCase() === lowerOwner ||
+          player.aliases.some((alias) => alias.trim().toLowerCase() === lowerOwner)
+      );
+
+      const mappedPlayer = matchedByTeam ?? matchedByOwner;
+
+      return {
+        id: `${parsed.id}_row_${index}`,
+        rank,
+        teamName,
+        ownerName,
+        score,
+        slotHint,
+        mappedPlayerName: mappedPlayer?.displayName ?? null
+      };
+    });
+  }, [parsed.id, parsed.parsedEntities.leaderboard_rows, players]);
+
   async function patchParsedResult(approved: boolean) {
     setSaving(true);
     setMessage(null);
@@ -141,6 +181,46 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
           <p className="uppercase tracking-[0.14em]">Extracted Snapshot</p>
           <p className="mt-2">Detected team names: {parsed.detectedTeamNames.join(", ") || "None"}</p>
           <p>Detected scores: {parsed.detectedScores.length ? parsed.detectedScores.join(", ") : "None"}</p>
+        </div>
+
+        <div className="rounded-md border border-border/70 bg-black/20 p-3">
+          <p className="text-xs uppercase tracking-[0.14em] text-mutedForeground">Parsed Leaderboard Rows</p>
+          {parsedRows.length === 0 ? (
+            <p className="mt-2 text-xs text-amber-300">No leaderboard rows were extracted from this screenshot.</p>
+          ) : (
+            <div className="mt-3 overflow-hidden rounded-md border border-border/60">
+              <table className="w-full text-xs">
+                <thead className="bg-neutral-900/70 text-mutedForeground">
+                  <tr>
+                    <th className="px-2 py-1 text-left font-medium">Rank</th>
+                    <th className="px-2 py-1 text-left font-medium">Team</th>
+                    <th className="px-2 py-1 text-left font-medium">Owner</th>
+                    <th className="px-2 py-1 text-left font-medium">Score</th>
+                    <th className="px-2 py-1 text-left font-medium">Slot</th>
+                    <th className="px-2 py-1 text-left font-medium">Map</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parsedRows.map((row) => (
+                    <tr key={row.id} className="border-t border-border/40">
+                      <td className="px-2 py-1">{row.rank ?? "-"}</td>
+                      <td className="px-2 py-1">{row.teamName || "-"}</td>
+                      <td className="px-2 py-1">{row.ownerName || "-"}</td>
+                      <td className="px-2 py-1">{row.score ?? "-"}</td>
+                      <td className="px-2 py-1">{row.slotHint ?? "-"}</td>
+                      <td className="px-2 py-1">
+                        {row.mappedPlayerName ? (
+                          <span className="text-emerald-300">Mapped: {row.mappedPlayerName}</span>
+                        ) : (
+                          <span className="text-amber-300">Unmapped</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">

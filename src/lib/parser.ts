@@ -19,6 +19,15 @@ interface OpenAiResponse {
   };
 }
 
+interface VisionParseRequest {
+  model: string;
+  apiKey: string;
+  baseUrl: string;
+  imageUrl: string;
+  prompt: string;
+  expectedGp?: string;
+}
+
 function extractOutputText(data: OpenAiResponse) {
   if (typeof data.output_text === "string" && data.output_text.trim().length > 0) {
     return data.output_text;
@@ -34,6 +43,93 @@ function extractOutputText(data: OpenAiResponse) {
   }
 
   return chunks.join("\n").trim();
+}
+
+async function runVisionRequest(req: VisionParseRequest) {
+  const response = await fetch(`${req.baseUrl}/responses`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${req.apiKey}`
+    },
+    body: JSON.stringify({
+      model: req.model,
+      text: {
+        format: {
+          type: "json_object"
+        }
+      },
+      input: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: req.prompt
+            },
+            {
+              type: "input_image",
+              image_url: req.imageUrl
+            },
+            {
+              type: "input_text",
+              text: req.expectedGp ? `Expected GP: ${req.expectedGp}` : "No expected GP provided."
+            }
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Vision API request failed: ${response.status} ${errText}`);
+  }
+
+  const data = (await response.json()) as OpenAiResponse;
+  const output = extractOutputText(data);
+  if (!output) {
+    if (data.error?.message) {
+      throw new Error(`Vision API returned no text output: ${data.error.message}`);
+    }
+    throw new Error("Vision API returned no parseable text output.");
+  }
+
+  const jsonStart = output.indexOf("{");
+  const jsonEnd = output.lastIndexOf("}");
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error("Vision API response did not contain a JSON object.");
+  }
+
+  return JSON.parse(output.slice(jsonStart, jsonEnd + 1)) as Record<string, unknown>;
+}
+
+function mergeLeaderboardRows(
+  primary: Record<string, unknown>,
+  leaderboardOnly: Record<string, unknown>
+): Record<string, unknown> {
+  const primaryEntities =
+    primary.parsed_entities && typeof primary.parsed_entities === "object"
+      ? (primary.parsed_entities as Record<string, unknown>)
+      : {};
+
+  const leaderboardEntities =
+    leaderboardOnly.parsed_entities && typeof leaderboardOnly.parsed_entities === "object"
+      ? (leaderboardOnly.parsed_entities as Record<string, unknown>)
+      : {};
+
+  const primaryRows = Array.isArray(primaryEntities.leaderboard_rows) ? primaryEntities.leaderboard_rows : [];
+  const extraRows = Array.isArray(leaderboardEntities.leaderboard_rows) ? leaderboardEntities.leaderboard_rows : [];
+
+  const mergedRows = primaryRows.length >= extraRows.length ? primaryRows : extraRows;
+
+  return {
+    ...primary,
+    parsed_entities: {
+      ...primaryEntities,
+      leaderboard_rows: mergedRows
+    }
+  };
 }
 
 function normalizeParsedResult(raw: unknown, screenshotId: string): ParsedScreenshotResult {
@@ -116,26 +212,7 @@ export async function openAIVisionParse(payload: OpenAiParsePayload): Promise<Pa
     throw new Error("VISION_API_KEY is missing.");
   }
 
-  const response = await fetch(`${baseUrl}/responses`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      text: {
-        format: {
-          type: "json_object"
-        }
-      },
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: `You are parsing a private Formula 1 fantasy screenshot.
+  const primaryPrompt = `You are parsing a private Formula 1 fantasy screenshot.
 
 Return ONE JSON object ONLY (no markdown, no prose) with EXACT keys:
 {
@@ -180,42 +257,47 @@ Parsing rules for this app:
 - If GP name is not visible, set gp_name to null and add warning.
 - confidence_by_field values must be between 0 and 1.
 - Do not fabricate names or scores; use null when unknown.
-`
-            },
-            {
-              type: "input_image",
-              image_url: payload.imageUrl
-            },
-            {
-              type: "input_text",
-              text: payload.forcedGpName ? `Expected GP: ${payload.forcedGpName}` : "No expected GP provided."
-            }
-          ]
-        }
-      ]
-    })
+`;
+
+  const leaderboardPrompt = `Extract ONLY leaderboard rows from this F1 fantasy screenshot.
+Return JSON only with shape:
+{
+  "parsed_entities": {
+    "leaderboard_rows": [
+      {
+        "rank": number|null,
+        "team_name": string|null,
+        "owner_name": string|null,
+        "score": number|null,
+        "team_slot_hint": "T1"|"T2"|null
+      }
+    ]
+  }
+}
+
+Rules:
+- Capture EVERY visible row in the leaderboard list, not only top entries.
+- If row data is partially unreadable, include row with null for missing fields.
+`;
+
+  const primaryRaw = await runVisionRequest({
+    model,
+    apiKey,
+    baseUrl,
+    imageUrl: payload.imageUrl,
+    prompt: primaryPrompt,
+    expectedGp: payload.forcedGpName
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Vision API request failed: ${response.status} ${errText}`);
-  }
+  const leaderboardRaw = await runVisionRequest({
+    model,
+    apiKey,
+    baseUrl,
+    imageUrl: payload.imageUrl,
+    prompt: leaderboardPrompt,
+    expectedGp: payload.forcedGpName
+  });
 
-  const data = (await response.json()) as OpenAiResponse;
-  const output = extractOutputText(data);
-  if (!output) {
-    if (data.error?.message) {
-      throw new Error(`Vision API returned no text output: ${data.error.message}`);
-    }
-    throw new Error("Vision API returned no parseable text output.");
-  }
-
-  const jsonStart = output.indexOf("{");
-  const jsonEnd = output.lastIndexOf("}");
-  if (jsonStart === -1 || jsonEnd === -1) {
-    throw new Error("Vision API response did not contain a JSON object.");
-  }
-
-  const parsed = JSON.parse(output.slice(jsonStart, jsonEnd + 1));
-  return normalizeParsedResult(parsed, payload.screenshotId);
+  const merged = mergeLeaderboardRows(primaryRaw, leaderboardRaw);
+  return normalizeParsedResult(merged, payload.screenshotId);
 }

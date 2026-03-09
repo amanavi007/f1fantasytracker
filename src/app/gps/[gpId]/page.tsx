@@ -8,6 +8,7 @@ import { TD, TH, TBody, THead, TR, Table } from "@/components/ui/table";
 import { FinalizeGpButton } from "@/components/finalize-gp-button";
 import { GpWorkflowStrip } from "@/components/gp-workflow-strip";
 import { ManualScoreForm } from "@/components/manual-score-form";
+import { ResetGpDataButton } from "@/components/reset-gp-data-button";
 import { getGpOverview } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
             <Button variant="outline" asChild>
               <Link href={`/gps/${gpId}/review`}>Open Parser Review</Link>
             </Button>
+            <ResetGpDataButton gpId={gpId} size="sm" label="Reset GP" />
             <FinalizeGpButton gpId={gpId} isFinalized={overview.gp.status === "finalized"} />
           </div>
         </div>

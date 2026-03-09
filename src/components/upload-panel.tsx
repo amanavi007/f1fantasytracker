@@ -88,6 +88,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
     setMessage("Upload + auto-parse completed.");
     setDetails(lines);
     setUploading(false);
+    router.push(`/gps/${gpId}/review`);
     router.refresh();
   }
 

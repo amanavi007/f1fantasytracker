@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GpStatusBadge } from "@/components/status-badge";
+import { ResetGpDataButton } from "@/components/reset-gp-data-button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { TD, TH, TBody, THead, TR, Table } from "@/components/ui/table";
 import { getGpOverview, getGps } from "@/lib/data";
@@ -18,8 +19,37 @@ export default async function GpHistoryPage() {
 
       <Card>
         <CardTitle>All GPs</CardTitle>
+        <div className="mt-4 grid gap-3 md:hidden">
+          {gps.map((gp, index) => {
+            const overview = overviews[index];
+            const loser = overview?.punishment.loserPlayerIds
+              .map((id) => overview.players.find((p) => p.id === id)?.displayName ?? id)
+              .join(", ");
+            const second = overview?.punishment.secondLastPlayerIds
+              .map((id) => overview.players.find((p) => p.id === id)?.displayName ?? id)
+              .join(", ");
+
+            return (
+              <div key={gp.id} className="rounded-lg border border-border/70 bg-black/20 p-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-white">{gp.name}</p>
+                  <GpStatusBadge status={gp.status} />
+                </div>
+                <p className="mt-1 text-xs text-mutedForeground">{formatDate(gp.raceDate)}</p>
+                <p className="mt-2 text-xs text-mutedForeground">Loser: {loser || "TBD"}</p>
+                <p className="text-xs text-mutedForeground">Second Last: {second || "TBD"}</p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <Link className="text-xs text-accent" href={`/gps/${gp.id}`}>
+                    Open GP Detail
+                  </Link>
+                  <ResetGpDataButton gpId={gp.id} label="Reset" size="sm" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
         <div className="mt-4 overflow-x-auto">
-          <Table>
+          <Table className="hidden md:table">
             <THead>
               <TR>
                 <TH>GP</TH>
@@ -28,7 +58,7 @@ export default async function GpHistoryPage() {
                 <TH>Loser</TH>
                 <TH>Second Last</TH>
                 <TH>Submissions</TH>
-                <TH className="text-right">Open</TH>
+                <TH className="text-right">Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -51,9 +81,12 @@ export default async function GpHistoryPage() {
                     <TD>{second || "TBD"}</TD>
                     <TD>{overview?.entries.length ?? 0}</TD>
                     <TD className="text-right">
-                      <Link className="text-accent" href={`/gps/${gp.id}`}>
-                        View GP
-                      </Link>
+                      <div className="flex justify-end gap-2">
+                        <Link className="text-accent" href={`/gps/${gp.id}`}>
+                          View GP
+                        </Link>
+                        <ResetGpDataButton gpId={gp.id} label="Reset" size="sm" />
+                      </div>
                     </TD>
                   </TR>
                 );
