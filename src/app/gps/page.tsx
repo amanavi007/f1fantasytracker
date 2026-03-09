@@ -8,9 +8,16 @@ export default async function GpHistoryPage() {
   const gps = await getGps();
   const overviews = await Promise.all(gps.map((gp) => getGpOverview(gp.id)));
   const overviewByGpId = new Map(gps.map((gp, index) => [gp.id, overviews[index]]));
-  const newestFirst = [...gps].reverse();
-  const latestGp = newestFirst[0];
-  const priorGps = newestFirst.slice(1);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const latestPastIndex = [...gps]
+    .map((gp, index) => ({ gp, index }))
+    .filter(({ gp }) => gp.raceDate && gp.raceDate <= todayIso)
+    .map(({ index }) => index)
+    .pop();
+
+  const featuredIndex = latestPastIndex ?? 0;
+  const latestGp = gps[featuredIndex];
+  const priorGps = gps.filter((_, index) => index !== featuredIndex);
 
   return (
     <div className="space-y-6">

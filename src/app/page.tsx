@@ -1,27 +1,24 @@
 import Link from "next/link";
-import { Activity, Camera, Flag, ShieldAlert } from "lucide-react";
+import { Flag, ShieldAlert } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
 import { GpStatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { computePunishmentBoard, getGpOverview, getGps, getParsedResultsByScreenshotIds, getScreenshotUploads } from "@/lib/data";
+import { computePunishmentBoard, getGpOverview, getGps } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  const [gps, screenshotUploads, punishmentBoardRaw] = await Promise.all([
+  const [gps, punishmentBoardRaw] = await Promise.all([
     getGps(),
-    getScreenshotUploads(),
     computePunishmentBoard()
   ]);
-  const parsedScreenshotResults = await getParsedResultsByScreenshotIds(screenshotUploads.map((s) => s.id));
 
   const latestGp = gps.length ? gps[gps.length - 1] : undefined;
   const latestFinalizedGp = [...gps].reverse().find((gp) => gp.status === "finalized");
   const activeGp = gps.find((gp) => gp.status !== "finalized") ?? gps[0];
   const latestResult = latestFinalizedGp ? await getGpOverview(latestFinalizedGp.id) : null;
   const punishmentBoard = punishmentBoardRaw.sort((a, b) => b.losses - a.losses);
-  const pendingReviews = parsedScreenshotResults.filter((p) => !p.approved).length;
 
   return (
     <div className="space-y-6">
@@ -41,8 +38,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Pending Review" value={String(pendingReviews)} subText="Parsed records not approved" icon={<Camera />} />
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
         <StatCard
           title="Latest GP Loser"
           value={
@@ -56,7 +52,6 @@ export default async function DashboardPage() {
           icon={<ShieldAlert />}
         />
         <StatCard title="Current GP" value={activeGp?.name ?? "No active GP"} subText={activeGp ? formatDate(activeGp.raceDate) : undefined} icon={<Flag />} />
-        <StatCard title="Uploads This GP" value={String(screenshotUploads.filter((s) => s.gpId === activeGp?.id).length)} subText="Stored originals" icon={<Activity />} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">

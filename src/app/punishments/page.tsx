@@ -20,16 +20,24 @@ export default async function PunishmentsPage() {
       const loserIds = summary?.punishment.loserPlayerIds ?? [];
 
       return (
-        <div key={gp.id} className="rounded-md border border-border/60 p-3">
-          <p className="font-medium">{gp.name}</p>
+        <div key={gp.id} className="rounded-xl border border-accent/30 bg-gradient-to-br from-accent/10 via-black/30 to-black/20 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-display text-lg tracking-wide text-white">{gp.name}</p>
+            <Badge variant="neutral">Round {gp.round}</Badge>
+          </div>
           <div className="mt-2 space-y-2">
             {loserIds.length === 0 ? <p className="text-sm text-mutedForeground">Loser: TBD</p> : null}
             {loserIds.map((loserId) => {
               const player = players.find((p) => p.id === loserId);
               const completed = completionMap.get(`${gp.id}:${loserId}`) ?? false;
               return (
-                <div key={`${gp.id}_${loserId}`} className="flex items-center justify-between rounded-md border border-border/60 px-2 py-2">
-                  <p className="text-sm">{player?.displayName ?? loserId}</p>
+                <div key={`${gp.id}_${loserId}`} className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-black/30 px-3 py-2">
+                  <div>
+                    <p className="text-sm text-white">{player?.displayName ?? loserId}</p>
+                    <p className={completed ? "text-xs text-emerald-300" : "text-xs text-red-300"}>
+                      {completed ? "Punishment Completed" : "Punishment Pending"}
+                    </p>
+                  </div>
                   <PunishmentCompletionToggle gpId={gp.id} playerId={loserId} initialCompleted={completed} />
                 </div>
               );
@@ -63,6 +71,12 @@ export default async function PunishmentsPage() {
       </section>
 
       <Card>
+        <CardTitle>Who Lost Each GP</CardTitle>
+        <CardDescription className="mt-1">Most prominent view for punishment tracking and completion status.</CardDescription>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">{gpLossCards}</div>
+      </Card>
+
+      <Card>
         <CardTitle>League Punishment Ladder</CardTitle>
         <CardDescription className="mt-1">GP-by-GP punishment events only. No season cumulative score for penalties.</CardDescription>
         <div className="mt-4 space-y-2">
@@ -78,11 +92,6 @@ export default async function PunishmentsPage() {
             </div>
           ))}
         </div>
-      </Card>
-
-      <Card>
-        <CardTitle>Who Lost Each GP</CardTitle>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">{gpLossCards}</div>
       </Card>
     </div>
   );

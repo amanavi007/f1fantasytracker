@@ -37,7 +37,17 @@ export function PunishmentCompletionToggle({ gpId, playerId, initialCompleted }:
   }
 
   if (!unlocked) {
-    return <span className="text-xs text-mutedForeground">{completed ? "Done" : "Pending"}</span>;
+    return (
+      <span
+        className={
+          completed
+            ? "rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300"
+            : "rounded-md border border-red-500/40 bg-red-500/10 px-2 py-1 text-xs text-red-300"
+        }
+      >
+        {completed ? "Completed" : "Pending"}
+      </span>
+    );
   }
 
   return (
