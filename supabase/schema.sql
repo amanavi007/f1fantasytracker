@@ -3,16 +3,28 @@
 
 create extension if not exists "pgcrypto";
 
-create type gp_status as enum ('draft', 'under_review', 'finalized');
-create type submission_status as enum (
-  'both_detected',
-  'one_team_missing',
-  'needs_review',
-  'manually_corrected',
-  'finalized',
-  'missing_submission'
-);
-create type tie_rule as enum ('shared_last', 'lower_best_team_loses', 'manual_decision');
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'gp_status') then
+    create type gp_status as enum ('draft', 'under_review', 'finalized');
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'submission_status') then
+    create type submission_status as enum (
+      'both_detected',
+      'one_team_missing',
+      'needs_review',
+      'manually_corrected',
+      'finalized',
+      'missing_submission'
+    );
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'tie_rule') then
+    create type tie_rule as enum ('shared_last', 'lower_best_team_loses', 'manual_decision');
+  end if;
+end
+$$;
 
 create table if not exists players (
   id uuid primary key default gen_random_uuid(),
@@ -55,9 +67,15 @@ create table if not exists gps (
   updated_at timestamptz not null default now()
 );
 
-alter table players
-  add constraint fk_players_join_gp
-  foreign key (join_gp_id) references gps(id) on delete set null;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'fk_players_join_gp') then
+    alter table players
+      add constraint fk_players_join_gp
+      foreign key (join_gp_id) references gps(id) on delete set null;
+  end if;
+end
+$$;
 
 create table if not exists screenshot_uploads (
   id uuid primary key default gen_random_uuid(),
@@ -141,6 +159,18 @@ create table if not exists punishment_results (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists punishment_completions (
+  id uuid primary key default gen_random_uuid(),
+  gp_id uuid not null references gps(id) on delete cascade,
+  player_id uuid not null references players(id) on delete cascade,
+  completed boolean not null default false,
+  completed_at timestamptz,
+  completed_by text,
+  notes text,
+  updated_at timestamptz not null default now(),
+  unique(gp_id, player_id)
+);
+
 create table if not exists gp_snapshot_history (
   id uuid primary key default gen_random_uuid(),
   gp_id uuid not null references gps(id) on delete cascade,
@@ -165,3 +195,4 @@ create index if not exists idx_gp_entries_gp on gp_entries(gp_id);
 create index if not exists idx_screenshot_uploads_gp on screenshot_uploads(gp_id);
 create index if not exists idx_parsed_results_shot on parsed_screenshot_results(screenshot_id);
 create index if not exists idx_correction_logs_gp on correction_logs(gp_id);
+create index if not exists idx_punishment_completions_gp on punishment_completions(gp_id);

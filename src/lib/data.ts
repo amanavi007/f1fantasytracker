@@ -330,3 +330,15 @@ export async function computePunishmentBoard() {
     secondLasts: secondCount.get(player.id) ?? 0
   }));
 }
+
+export async function getPunishmentCompletions() {
+  if (!hasSupabaseServerEnv()) return new Map<string, boolean>();
+  const supabase = getSupabaseServerClient();
+  const { data } = await supabase.from("punishment_completions").select("gp_id, player_id, completed");
+
+  const map = new Map<string, boolean>();
+  for (const row of data ?? []) {
+    map.set(`${row.gp_id}:${row.player_id}`, Boolean(row.completed));
+  }
+  return map;
+}

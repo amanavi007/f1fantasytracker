@@ -111,22 +111,6 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
           </div>
         </Card>
       </section>
-
-      <Card>
-        <CardTitle>Correction Log</CardTitle>
-        <div className="mt-4 space-y-2">
-          {overview.corrections.map((correction) => (
-            <div key={correction.id} className="rounded-md border border-border/70 px-3 py-2 text-sm">
-              <p className="text-white">
-                {correction.fieldName}: {correction.originalValue} → {correction.correctedValue}
-              </p>
-              <p className="text-xs text-mutedForeground">
-                {correction.editedBy} • {new Date(correction.editedAt).toLocaleString()} • {correction.reason}
-              </p>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

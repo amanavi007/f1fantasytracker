@@ -1,26 +1,40 @@
 import { Flame, ShieldAlert } from "lucide-react";
+import { PunishmentCompletionToggle } from "@/components/punishment-completion-toggle";
 import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { computePunishmentBoard, getGpOverview, getGps, getPlayers } from "@/lib/data";
+import { computePunishmentBoard, getGpOverview, getGps, getPlayers, getPunishmentCompletions } from "@/lib/data";
 
 export default async function PunishmentsPage() {
-  const [boardRaw, gps, players] = await Promise.all([computePunishmentBoard(), getGps(), getPlayers()]);
+  const [boardRaw, gps, players, completionMap] = await Promise.all([
+    computePunishmentBoard(),
+    getGps(),
+    getPlayers(),
+    getPunishmentCompletions()
+  ]);
   const board = boardRaw.sort((a, b) => b.losses - a.losses || b.secondLasts - a.secondLasts);
   const finalized = gps.filter((gp) => gp.status === "finalized");
   const gpLossCards = await Promise.all(
-    gps.map(async (gp) => {
+    finalized.map(async (gp) => {
       const summary = await getGpOverview(gp.id);
-      const losers =
-        summary?.punishment.loserPlayerIds
-          .map((id) => players.find((p) => p.id === id)?.displayName)
-          .filter(Boolean)
-          .join(", ") || "TBD";
+      const loserIds = summary?.punishment.loserPlayerIds ?? [];
 
       return (
         <div key={gp.id} className="rounded-md border border-border/60 p-3">
           <p className="font-medium">{gp.name}</p>
-          <p className="mt-1 text-sm text-mutedForeground">Loser: {losers}</p>
+          <div className="mt-2 space-y-2">
+            {loserIds.length === 0 ? <p className="text-sm text-mutedForeground">Loser: TBD</p> : null}
+            {loserIds.map((loserId) => {
+              const player = players.find((p) => p.id === loserId);
+              const completed = completionMap.get(`${gp.id}:${loserId}`) ?? false;
+              return (
+                <div key={`${gp.id}_${loserId}`} className="flex items-center justify-between rounded-md border border-border/60 px-2 py-2">
+                  <p className="text-sm">{player?.displayName ?? loserId}</p>
+                  <PunishmentCompletionToggle gpId={gp.id} playerId={loserId} initialCompleted={completed} />
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     })
