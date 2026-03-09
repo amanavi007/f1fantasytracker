@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: Gauge },
   { href: "/gps", label: "GP History", icon: Flag },
-  { href: "/upload", label: "Batch Upload", icon: ScanSearch },
+  { href: "/upload", label: "Upload", icon: ScanSearch },
   { href: "/players", label: "Players", icon: Users },
   { href: "/punishments", label: "Punishment Board", icon: ShieldAlert }
 ];
