@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud } from "lucide-react";
+import { Trash2, UploadCloud } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
   const [gpId, setGpId] = useState(gps.find((g) => g.status !== "finalized")?.id ?? gps[0]?.id);
   const [files, setFiles] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [details, setDetails] = useState<string[]>([]);
 
@@ -92,6 +93,27 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
     router.refresh();
   }
 
+  async function deleteScreenshot(uploadId: string) {
+    setDeletingId(uploadId);
+    setMessage(null);
+
+    const response = await fetch(`/api/uploads/${uploadId}`, {
+      method: "DELETE"
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+    if (!response.ok) {
+      setMessage(payload.error || "Failed to delete screenshot.");
+      setDeletingId(null);
+      return;
+    }
+
+    setMessage("Screenshot deleted.");
+    setDeletingId(null);
+    router.refresh();
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -159,18 +181,28 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
       </Card>
 
       <Card>
-        <CardTitle>3. Duplicate / Wrong GP Warnings</CardTitle>
+        <CardTitle>3. Screenshot Manager</CardTitle>
+        <CardDescription className="mt-1">Delete old uploads for this GP. This also removes linked parsed rows.</CardDescription>
         <div className="mt-3 space-y-2">
-          {filtered.map((shot) => {
-            const dup = filtered.filter((s) => s.hash && s.hash === shot.hash).length > 1;
-            return (
-              <div key={shot.id} className="rounded-md border border-border/70 px-3 py-2 text-sm">
+          {filtered.length === 0 ? <p className="text-sm text-mutedForeground">No screenshots uploaded for this GP yet.</p> : null}
+          {filtered.map((shot) => (
+            <div key={shot.id} className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2 text-sm">
+              <div>
                 <p className="text-white">{shot.fileName}</p>
-                <p className="text-xs text-mutedForeground">hash: {shot.hash || "(none)"}</p>
-                {dup ? <p className="mt-1 text-xs text-amber-300">Warning: possible duplicate screenshot</p> : null}
+                <p className="text-xs text-mutedForeground">Uploaded {new Date(shot.uploadedAt).toLocaleString()}</p>
               </div>
-            );
-          })}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={deletingId === shot.id}
+                onClick={() => deleteScreenshot(shot.id)}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                {deletingId === shot.id ? "Deleting" : "Delete"}
+              </Button>
+            </div>
+          ))}
         </div>
       </Card>
     </div>

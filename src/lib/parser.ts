@@ -8,6 +8,32 @@ interface OpenAiParsePayload {
 
 interface OpenAiResponse {
   output_text?: string;
+  output?: Array<{
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  }>;
+  error?: {
+    message?: string;
+  };
+}
+
+function extractOutputText(data: OpenAiResponse) {
+  if (typeof data.output_text === "string" && data.output_text.trim().length > 0) {
+    return data.output_text;
+  }
+
+  const chunks: string[] = [];
+  for (const item of data.output ?? []) {
+    for (const content of item.content ?? []) {
+      if ((content.type === "output_text" || content.type === "text") && typeof content.text === "string") {
+        chunks.push(content.text);
+      }
+    }
+  }
+
+  return chunks.join("\n").trim();
 }
 
 function normalizeParsedResult(raw: unknown, screenshotId: string): ParsedScreenshotResult {
@@ -57,6 +83,11 @@ export async function openAIVisionParse(payload: OpenAiParsePayload): Promise<Pa
     },
     body: JSON.stringify({
       model,
+      text: {
+        format: {
+          type: "json_object"
+        }
+      },
       input: [
         {
           role: "user",
@@ -86,9 +117,12 @@ export async function openAIVisionParse(payload: OpenAiParsePayload): Promise<Pa
   }
 
   const data = (await response.json()) as OpenAiResponse;
-  const output = data.output_text;
+  const output = extractOutputText(data);
   if (!output) {
-    throw new Error("Vision API returned empty output_text.");
+    if (data.error?.message) {
+      throw new Error(`Vision API returned no text output: ${data.error.message}`);
+    }
+    throw new Error("Vision API returned no parseable text output.");
   }
 
   const jsonStart = output.indexOf("{");
