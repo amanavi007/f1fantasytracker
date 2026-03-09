@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { GpWorkflowStrip } from "@/components/gp-workflow-strip";
 import { ReviewRecordCard } from "@/components/review-record-card";
-import { ResetGpDataButton } from "@/components/reset-gp-data-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -25,7 +24,6 @@ export default async function GpReviewPage({ params }: { params: Promise<{ gpId:
         <div className="flex gap-2">
           <Badge variant="warning">Low confidence: {lowConfidenceCount}</Badge>
           <Badge variant="neutral">Total records: {overview.parsed.length}</Badge>
-          <ResetGpDataButton gpId={gpId} size="sm" label="Reset GP" />
           <Button>Approve All Ready</Button>
         </div>
       </section>

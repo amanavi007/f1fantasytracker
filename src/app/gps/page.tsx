@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { GpStatusBadge } from "@/components/status-badge";
-import { ResetGpDataButton } from "@/components/reset-gp-data-button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { TD, TH, TBody, THead, TR, Table } from "@/components/ui/table";
 import { getGpOverview, getGps } from "@/lib/data";
@@ -42,7 +41,6 @@ export default async function GpHistoryPage() {
                   <Link className="text-xs text-accent" href={`/gps/${gp.id}`}>
                     Open GP Detail
                   </Link>
-                  <ResetGpDataButton gpId={gp.id} label="Reset" size="sm" />
                 </div>
               </div>
             );
@@ -58,7 +56,7 @@ export default async function GpHistoryPage() {
                 <TH>Loser</TH>
                 <TH>Second Last</TH>
                 <TH>Submissions</TH>
-                <TH className="text-right">Actions</TH>
+                <TH className="text-right">Open</TH>
               </TR>
             </THead>
             <TBody>
@@ -81,12 +79,9 @@ export default async function GpHistoryPage() {
                     <TD>{second || "TBD"}</TD>
                     <TD>{overview?.entries.length ?? 0}</TD>
                     <TD className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link className="text-accent" href={`/gps/${gp.id}`}>
-                          View GP
-                        </Link>
-                        <ResetGpDataButton gpId={gp.id} label="Reset" size="sm" />
-                      </div>
+                      <Link className="text-accent" href={`/gps/${gp.id}`}>
+                        View GP
+                      </Link>
                     </TD>
                   </TR>
                 );

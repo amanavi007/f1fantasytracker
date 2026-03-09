@@ -27,7 +27,6 @@ interface EditableLeaderboardRow {
   team_name: string;
   owner_name: string;
   score: string;
-  team_slot_hint: "T1" | "T2" | "";
 }
 
 function toEditableRows(parsed: ParsedScreenshotResult): EditableLeaderboardRow[] {
@@ -41,8 +40,7 @@ function toEditableRows(parsed: ParsedScreenshotResult): EditableLeaderboardRow[
     rank: row.rank === null || row.rank === undefined ? "" : String(row.rank),
     team_name: typeof row.team_name === "string" ? row.team_name : "",
     owner_name: typeof row.owner_name === "string" ? row.owner_name : "",
-    score: row.score === null || row.score === undefined ? "" : String(row.score),
-    team_slot_hint: row.team_slot_hint === "T1" || row.team_slot_hint === "T2" ? row.team_slot_hint : ""
+    score: row.score === null || row.score === undefined ? "" : String(row.score)
   }));
 }
 
@@ -64,7 +62,6 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
       const ownerName = row.owner_name;
       const rank = parseNullableNumber(row.rank);
       const score = parseNullableNumber(row.score);
-      const slotHint = row.team_slot_hint || null;
 
       const lowerTeam = teamName.trim().toLowerCase();
       const lowerOwner = ownerName.trim().toLowerCase();
@@ -86,7 +83,6 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
         teamName,
         ownerName,
         score,
-        slotHint,
         mappedPlayerName: mappedPlayer?.displayName ?? null
       };
     });
@@ -97,7 +93,7 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
   }
 
   function addRow() {
-    setRows((prev) => [...prev, { rank: "", team_name: "", owner_name: "", score: "", team_slot_hint: "" }]);
+    setRows((prev) => [...prev, { rank: "", team_name: "", owner_name: "", score: "" }]);
   }
 
   async function patchParsedResult(approved: boolean) {
@@ -108,8 +104,7 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
       rank: parseNullableNumber(row.rank),
       team_name: row.team_name.trim() || null,
       owner_name: row.owner_name.trim() || null,
-      score: parseNullableNumber(row.score),
-      team_slot_hint: row.team_slot_hint || null
+      score: parseNullableNumber(row.score)
     }));
 
     const response = await fetch(`/api/parsed-results/${parsed.id}`, {
@@ -201,7 +196,6 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
                     <th className="px-2 py-1 text-left font-medium">Team</th>
                     <th className="px-2 py-1 text-left font-medium">Owner</th>
                     <th className="px-2 py-1 text-left font-medium">Score</th>
-                    <th className="px-2 py-1 text-left font-medium">Slot</th>
                     <th className="px-2 py-1 text-left font-medium">Map</th>
                   </tr>
                 </thead>
@@ -235,17 +229,6 @@ export function ReviewRecordCard({ parsed, screenshot, screenshotPreviewUrl, pla
                           onChange={(e) => updateRow(index, "score", e.target.value)}
                           className="h-8"
                         />
-                      </td>
-                      <td className="px-2 py-1">
-                        <select
-                          value={rows[index]?.team_slot_hint ?? ""}
-                          onChange={(e) => updateRow(index, "team_slot_hint", e.target.value as "T1" | "T2" | "")}
-                          className="h-8 rounded-md border border-border/70 bg-background px-2 text-xs"
-                        >
-                          <option value="">-</option>
-                          <option value="T1">T1</option>
-                          <option value="T2">T2</option>
-                        </select>
                       </td>
                       <td className="px-2 py-1">
                         {row.mappedPlayerName ? (

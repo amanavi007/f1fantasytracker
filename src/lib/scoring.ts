@@ -47,7 +47,7 @@ export function computePunishmentForGp(
   tieRule: TieRule = "lower_best_team_loses"
 ): GpPunishmentResult {
   const rows = buildGpRows(gpId, players, scores).filter((r) => r.combined !== null);
-  if (rows.length === 0) {
+  if (rows.length < 2) {
     return {
       gpId,
       loserPlayerIds: [],

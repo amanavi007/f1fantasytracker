@@ -202,7 +202,6 @@ export async function POST(request: Request) {
       const teamName = typeof row.team_name === "string" ? row.team_name : null;
       const ownerName = typeof row.owner_name === "string" ? row.owner_name : null;
       const score = asNumber(row.score);
-      const slotHint = typeof row.team_slot_hint === "string" ? row.team_slot_hint.toUpperCase() : null;
 
       if (!teamName || score === null) continue;
 
@@ -223,8 +222,6 @@ export async function POST(request: Request) {
 
       const slotFromDb = teamMatch?.slot;
       let slot = slotFromDb;
-      if (!slot && slotHint === "T1") slot = 1;
-      if (!slot && slotHint === "T2") slot = 2;
       if (!slot) slot = existing.seenSlots.has(1) ? 2 : 1;
 
       if (slot === 1) existing.team1Score = score;

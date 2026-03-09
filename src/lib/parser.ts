@@ -152,6 +152,13 @@ function normalizeParsedResult(raw: unknown, screenshotId: string): ParsedScreen
       )
     : [];
 
+  const normalizedLeaderboardRows = leaderboardRows.map((row) => ({
+    rank: typeof row.rank === "number" && Number.isFinite(row.rank) ? row.rank : null,
+    team_name: typeof row.team_name === "string" ? row.team_name : null,
+    owner_name: typeof row.owner_name === "string" ? row.owner_name : null,
+    score: typeof row.score === "number" && Number.isFinite(row.score) ? row.score : null
+  }));
+
   const parsedEntities: Record<string, unknown> = {
     account:
       typeof parsedEntitiesRaw.account === "string"
@@ -179,7 +186,7 @@ function normalizeParsedResult(raw: unknown, screenshotId: string): ParsedScreen
         : Number.isFinite(detectedScores[1])
           ? detectedScores[1]
           : null,
-    leaderboard_rows: leaderboardRows
+    leaderboard_rows: normalizedLeaderboardRows
   };
 
   return {
@@ -232,8 +239,7 @@ Return ONE JSON object ONLY (no markdown, no prose) with EXACT keys:
         "rank": number|null,
         "team_name": string|null,
         "owner_name": string|null,
-        "score": number|null,
-        "team_slot_hint": "T1"|"T2"|null
+        "score": number|null
       }
     ]
   },
@@ -268,8 +274,7 @@ Return JSON only with shape:
         "rank": number|null,
         "team_name": string|null,
         "owner_name": string|null,
-        "score": number|null,
-        "team_slot_hint": "T1"|"T2"|null
+        "score": number|null
       }
     ]
   }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, UploadCloud } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,6 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
   const [gpId, setGpId] = useState(gps.find((g) => g.status !== "finalized")?.id ?? gps[0]?.id);
   const [files, setFiles] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [details, setDetails] = useState<string[]>([]);
 
@@ -92,27 +91,6 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
     router.refresh();
   }
 
-  async function deleteScreenshot(uploadId: string) {
-    setDeletingId(uploadId);
-    setMessage(null);
-
-    const response = await fetch(`/api/uploads/${uploadId}`, {
-      method: "DELETE"
-    });
-
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-    if (!response.ok) {
-      setMessage(payload.error || "Failed to delete screenshot.");
-      setDeletingId(null);
-      return;
-    }
-
-    setMessage("Screenshot deleted.");
-    setDeletingId(null);
-    router.refresh();
-  }
-
   return (
     <div className="space-y-6">
       <Card>
@@ -178,7 +156,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
 
       <Card>
         <CardTitle>3. Screenshot Manager</CardTitle>
-        <CardDescription className="mt-1">Delete old uploads for this GP. This also removes linked parsed rows.</CardDescription>
+        <CardDescription className="mt-1">Uploaded screenshots for this GP.</CardDescription>
         <div className="mt-3 space-y-2">
           {filtered.length === 0 ? <p className="text-sm text-mutedForeground">No screenshots uploaded for this GP yet.</p> : null}
           {filtered.map((shot) => (
@@ -187,16 +165,7 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
                 <p className="text-white">{shot.fileName}</p>
                 <p className="text-xs text-mutedForeground">Uploaded {new Date(shot.uploadedAt).toLocaleString()}</p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={deletingId === shot.id}
-                onClick={() => deleteScreenshot(shot.id)}
-              >
-                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                {deletingId === shot.id ? "Deleting" : "Delete"}
-              </Button>
+              <Badge variant="neutral">Stored</Badge>
             </div>
           ))}
         </div>

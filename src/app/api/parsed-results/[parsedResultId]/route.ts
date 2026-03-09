@@ -13,8 +13,7 @@ const schema = z.object({
         rank: z.number().nullable().optional(),
         team_name: z.string().nullable().optional(),
         owner_name: z.string().nullable().optional(),
-        score: z.number().nullable().optional(),
-        team_slot_hint: z.enum(["T1", "T2"]).nullable().optional()
+        score: z.number().nullable().optional()
       })
     )
     .optional(),

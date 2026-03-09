@@ -16,9 +16,10 @@ export default async function DashboardPage() {
   ]);
   const parsedScreenshotResults = await getParsedResultsByScreenshotIds(screenshotUploads.map((s) => s.id));
 
-  const latestGp = gps[0];
+  const latestGp = gps.length ? gps[gps.length - 1] : undefined;
+  const latestFinalizedGp = [...gps].reverse().find((gp) => gp.status === "finalized");
   const activeGp = gps.find((gp) => gp.status !== "finalized") ?? gps[0];
-  const latestResult = latestGp ? await getGpOverview(latestGp.id) : null;
+  const latestResult = latestFinalizedGp ? await getGpOverview(latestFinalizedGp.id) : null;
   const punishmentBoard = punishmentBoardRaw.sort((a, b) => b.losses - a.losses);
   const pendingReviews = parsedScreenshotResults.filter((p) => !p.approved).length;
 
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
                   .join(", ")
               : "TBD"
           }
-          subText={latestGp?.name ?? "No GP yet"}
+          subText={latestFinalizedGp?.name ?? "No finalized GP yet"}
           icon={<ShieldAlert />}
         />
         <StatCard title="Current GP" value={activeGp?.name ?? "No active GP"} subText={activeGp ? formatDate(activeGp.raceDate) : undefined} icon={<Flag />} />
