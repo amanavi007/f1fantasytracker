@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,12 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Gp, ScreenshotUpload } from "@/lib/types";
 
 export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUpload[] }) {
+  const router = useRouter();
   const [gpId, setGpId] = useState(gps.find((g) => g.status !== "finalized")?.id ?? gps[0]?.id);
   const [files, setFiles] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [details, setDetails] = useState<string[]>([]);
 
   const filtered = useMemo(() => uploads.filter((s) => s.gpId === gpId), [gpId, uploads]);
+  const selectedGp = gps.find((g) => g.id === gpId);
 
   async function uploadBatch(runParse: boolean) {
     if (!gpId || !files || files.length === 0) {
@@ -24,10 +30,12 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
 
     setUploading(true);
     setMessage(null);
+    setDetails([]);
 
     const formData = new FormData();
     formData.append("gpId", gpId);
-    for (const file of Array.from(files)) {
+    const selectedFiles = Array.from(files);
+    for (const file of selectedFiles) {
       formData.append("files", file);
     }
 
@@ -47,8 +55,11 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
       return;
     }
 
+    const lines: string[] = [];
+    lines.push(`Uploaded ${payload.uploads.length}/${selectedFiles.length} screenshots.`);
+
     if (runParse) {
-      await Promise.all(
+      const parseResponses = await Promise.all(
         payload.uploads.map((upload) =>
           fetch("/api/parse-screenshot", {
             method: "POST",
@@ -57,10 +68,19 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
           })
         )
       );
+
+      const parseOk = parseResponses.filter((res) => res.ok).length;
+      const parseFailed = parseResponses.length - parseOk;
+      lines.push(`Parsed ${parseOk}/${parseResponses.length} screenshots.`);
+      if (parseFailed > 0) {
+        lines.push(`${parseFailed} parse request(s) failed. Open GP review to inspect missing records.`);
+      }
     }
 
-    setMessage(runParse ? "Uploaded and sent to parser. Refreshing..." : "Uploaded. Refreshing...");
-    window.location.reload();
+    setMessage(runParse ? "Upload and parse completed." : "Upload completed.");
+    setDetails(lines);
+    setUploading(false);
+    router.refresh();
   }
 
   return (
@@ -81,6 +101,16 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
             </SelectContent>
           </Select>
         </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+          <Badge variant="neutral">{selectedGp?.name ?? "No GP selected"}</Badge>
+          <Badge variant="neutral">Screenshots: {filtered.length}</Badge>
+          <Link href={gpId ? `/gps/${gpId}` : "/gps"} className="text-accent">
+            Open GP Detail
+          </Link>
+          <Link href={gpId ? `/gps/${gpId}/review` : "/gps"} className="text-accent">
+            Open Parser Review
+          </Link>
+        </div>
       </Card>
 
       <Card>
@@ -90,6 +120,16 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
           <UploadCloud className="mx-auto h-10 w-10 text-accent" />
           <p className="mt-2 text-sm text-mutedForeground">Drag screenshots here or browse files.</p>
           <Input type="file" className="mx-auto mt-4 max-w-md" multiple onChange={(e) => setFiles(e.target.files)} />
+          {files?.length ? (
+            <div className="mx-auto mt-3 max-w-xl rounded-md border border-border/60 bg-black/20 p-2 text-left text-xs text-mutedForeground">
+              {Array.from(files)
+                .slice(0, 5)
+                .map((file) => (
+                  <p key={file.name}>{file.name}</p>
+                ))}
+              {files.length > 5 ? <p>+ {files.length - 5} more</p> : null}
+            </div>
+          ) : null}
           <div className="mt-4 flex justify-center gap-2">
             <Button disabled={uploading} onClick={() => uploadBatch(false)}>
               {uploading ? "Uploading..." : "Upload Batch"}
@@ -99,6 +139,13 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
             </Button>
           </div>
           {message ? <p className="mt-3 text-sm text-mutedForeground">{message}</p> : null}
+          {details.length > 0 ? (
+            <div className="mx-auto mt-3 max-w-xl rounded-md border border-border/60 bg-black/20 p-3 text-left text-xs text-mutedForeground">
+              {details.map((line) => (
+                <p key={line}>• {line}</p>
+              ))}
+            </div>
+          ) : null}
         </div>
       </Card>
 

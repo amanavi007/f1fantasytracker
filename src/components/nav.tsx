@@ -45,3 +45,57 @@ export function SideNav() {
     </aside>
   );
 }
+
+export function MobileNav() {
+  const pathname = usePathname();
+  const bottomItems = navItems.slice(0, 5);
+
+  return (
+    <>
+      <div className="sticky top-0 z-30 border-b border-border/70 bg-black/40 p-3 backdrop-blur lg:hidden">
+        <p className="font-display text-sm tracking-[0.2em] text-white">F1 PUNISHMENT</p>
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+          {navItems.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-2 rounded-md border px-3 py-1.5 text-xs",
+                  active
+                    ? "border-accent/50 bg-accent/20 text-white"
+                    : "border-border/70 bg-black/20 text-mutedForeground"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-border/70 bg-black/80 backdrop-blur lg:hidden">
+        {bottomItems.map((item) => {
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-2 text-[10px]",
+                active ? "text-accent" : "text-mutedForeground"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{item.label.replace("Batch ", "")}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </>
+  );
+}

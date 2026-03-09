@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { GpWorkflowStrip } from "@/components/gp-workflow-strip";
 import { ReviewRecordCard } from "@/components/review-record-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ export default async function GpReviewPage({ params }: { params: Promise<{ gpId:
           <Button>Approve All Ready</Button>
         </div>
       </section>
+
+      <GpWorkflowStrip status={overview.gp.status} screenshots={overview.screenshots} parsed={overview.parsed} />
 
       <Card>
         <CardTitle>Workflow Rules</CardTitle>

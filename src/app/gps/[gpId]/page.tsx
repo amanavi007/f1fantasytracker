@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { TD, TH, TBody, THead, TR, Table } from "@/components/ui/table";
 import { FinalizeGpButton } from "@/components/finalize-gp-button";
+import { GpWorkflowStrip } from "@/components/gp-workflow-strip";
 import { ManualScoreForm } from "@/components/manual-score-form";
 import { getGpOverview } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
@@ -33,6 +34,8 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
           </div>
         </div>
       </section>
+
+      <GpWorkflowStrip status={overview.gp.status} screenshots={overview.screenshots} parsed={overview.parsed} />
 
       <Card>
         <CardTitle>Ranking (Lowest Combined = Loser)</CardTitle>
