@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flag, Gauge, GalleryHorizontal, ScanSearch, ShieldAlert, Users } from "lucide-react";
+import { Flag, Gauge, ScanSearch, ShieldAlert, Users } from "lucide-react";
 import { AdminUnlock } from "@/components/admin-unlock";
 import { cn } from "@/lib/utils";
 
@@ -11,8 +11,7 @@ const navItems = [
   { href: "/gps", label: "GP History", icon: Flag },
   { href: "/upload", label: "Batch Upload", icon: ScanSearch },
   { href: "/players", label: "Players", icon: Users },
-  { href: "/punishments", label: "Punishment Board", icon: ShieldAlert },
-  { href: "/stats", label: "Shame Stats", icon: GalleryHorizontal }
+  { href: "/punishments", label: "Punishment Board", icon: ShieldAlert }
 ];
 
 export function SideNav() {
