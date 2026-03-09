@@ -13,12 +13,29 @@ interface Props {
   parsed: ParsedScreenshotResult;
   screenshot?: ScreenshotUpload;
   players: Player[];
+  autoAssigned?: {
+    playerId: string;
+    playerName?: string;
+    team1Score: number | null;
+    team2Score: number | null;
+  };
 }
 
-export function ReviewRecordCard({ parsed, screenshot, players }: Props) {
+export function ReviewRecordCard({ parsed, screenshot, players, autoAssigned }: Props) {
+  const fallbackTeam1 =
+    parsed.parsedEntities.team_1_score ??
+    (Number.isFinite(parsed.detectedScores[0]) ? parsed.detectedScores[0] : null) ??
+    autoAssigned?.team1Score ??
+    "";
+  const fallbackTeam2 =
+    parsed.parsedEntities.team_2_score ??
+    (Number.isFinite(parsed.detectedScores[1]) ? parsed.detectedScores[1] : null) ??
+    autoAssigned?.team2Score ??
+    "";
+
   const [account, setAccount] = useState(parsed.detectedAccountName ?? "");
-  const [team1Score, setTeam1Score] = useState(String(parsed.parsedEntities.team_1_score ?? ""));
-  const [team2Score, setTeam2Score] = useState(String(parsed.parsedEntities.team_2_score ?? ""));
+  const [team1Score, setTeam1Score] = useState(String(fallbackTeam1));
+  const [team2Score, setTeam2Score] = useState(String(fallbackTeam2));
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -102,6 +119,13 @@ export function ReviewRecordCard({ parsed, screenshot, players }: Props) {
           <p className="text-xs text-mutedForeground">
             {matchedPlayer ? `Mapped to ${matchedPlayer.displayName}` : "No alias match. Map manually in players settings."}
           </p>
+          {autoAssigned ? (
+            <p className="text-xs text-emerald-300">
+              Auto-assigned in DB: {autoAssigned.playerName ?? autoAssigned.playerId} | T1 {autoAssigned.team1Score ?? "-"} | T2 {autoAssigned.team2Score ?? "-"}
+            </p>
+          ) : (
+            <p className="text-xs text-amber-300">No auto-assigned DB scores for this parse record yet.</p>
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">

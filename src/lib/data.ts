@@ -240,6 +240,34 @@ export async function getGpOverview(gpId: string) {
     getGpEntries(gpId, players, allScores)
   ]);
 
+  const parsedIds = parsed.map((row) => row.id);
+  const autoAssignedByParsedId = new Map<
+    string,
+    { playerId: string; playerName?: string; team1Score: number | null; team2Score: number | null }
+  >();
+
+  if (hasSupabaseServerEnv() && parsedIds.length > 0) {
+    const supabase = getSupabaseServerClient();
+    const { data: autoRows } = await supabase
+      .from("gp_team_scores")
+      .select("source_parsed_result_id, player_id, team_slot, score")
+      .in("source_parsed_result_id", parsedIds);
+
+    for (const row of autoRows ?? []) {
+      if (!row.source_parsed_result_id) continue;
+      const existing = autoAssignedByParsedId.get(row.source_parsed_result_id) ?? {
+        playerId: row.player_id,
+        playerName: players.find((p) => p.id === row.player_id)?.displayName,
+        team1Score: null,
+        team2Score: null
+      };
+
+      if (row.team_slot === 1) existing.team1Score = row.score === null ? null : Number(row.score);
+      if (row.team_slot === 2) existing.team2Score = row.score === null ? null : Number(row.score);
+      autoAssignedByParsedId.set(row.source_parsed_result_id, existing);
+    }
+  }
+
   const rows = buildGpRows(gpId, players, allScores);
   const punishment = computePunishmentForGp(gpId, players, allScores, settings.tieRule);
 
@@ -250,6 +278,7 @@ export async function getGpOverview(gpId: string) {
     entries,
     screenshots,
     parsed,
+    autoAssignedByParsedId,
     corrections,
     players
   };
