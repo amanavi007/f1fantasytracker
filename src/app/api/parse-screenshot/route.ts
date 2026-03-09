@@ -10,39 +10,40 @@ const payloadSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = await verifyAdminRequest(request);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
+  try {
+    const auth = await verifyAdminRequest(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
-  const body = await request.json();
-  const payload = payloadSchema.parse(body);
-  const supabase = getSupabaseServerClient();
+    const body = await request.json();
+    const payload = payloadSchema.parse(body);
+    const supabase = getSupabaseServerClient();
 
-  const { data: screenshot, error: screenshotError } = await supabase
-    .from("screenshot_uploads")
-    .select("id, gp_id, file_name, storage_path")
-    .eq("id", payload.screenshotId)
-    .maybeSingle();
+    const { data: screenshot, error: screenshotError } = await supabase
+      .from("screenshot_uploads")
+      .select("id, gp_id, file_name, storage_path")
+      .eq("id", payload.screenshotId)
+      .maybeSingle();
 
-  if (screenshotError || !screenshot) {
-    return NextResponse.json({ error: "Screenshot not found." }, { status: 404 });
-  }
+    if (screenshotError || !screenshot) {
+      return NextResponse.json({ error: "Screenshot not found." }, { status: 404 });
+    }
 
-  const bucket = process.env.SUPABASE_STORAGE_BUCKET || "screenshots";
-  const { data: signed, error: signedError } = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(screenshot.storage_path, 60 * 10);
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "screenshots";
+    const { data: signed, error: signedError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(screenshot.storage_path, 60 * 10);
 
-  if (signedError || !signed?.signedUrl) {
-    return NextResponse.json({ error: "Could not generate signed URL for screenshot." }, { status: 500 });
-  }
+    if (signedError || !signed?.signedUrl) {
+      return NextResponse.json({ error: "Could not generate signed URL for screenshot." }, { status: 500 });
+    }
 
-  const parsed = await openAIVisionParse({
-    screenshotId: screenshot.id,
-    imageUrl: signed.signedUrl,
-    forcedGpName: payload.forcedGpName
-  });
+    const parsed = await openAIVisionParse({
+      screenshotId: screenshot.id,
+      imageUrl: signed.signedUrl,
+      forcedGpName: payload.forcedGpName
+    });
 
   const { data: insertedParsed } = await supabase
     .from("parsed_screenshot_results")
@@ -164,14 +165,18 @@ export async function POST(request: Request) {
     autoAssigned = true;
   }
 
-  return NextResponse.json({
-    parser: process.env.VISION_MODEL || "gpt-4.1-mini",
-    parsed,
-    autoAssignment: {
-      mappedPlayerId,
-      autoAssigned,
-      score1,
-      score2
-    }
-  });
+    return NextResponse.json({
+      parser: process.env.VISION_MODEL || "gpt-4.1-mini",
+      parsed,
+      autoAssignment: {
+        mappedPlayerId,
+        autoAssigned,
+        score1,
+        score2
+      }
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown parse error.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

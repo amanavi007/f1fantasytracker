@@ -73,7 +73,16 @@ export function UploadPanel({ gps, uploads }: { gps: Gp[]; uploads: ScreenshotUp
       const parseFailed = parseResponses.length - parseOk;
       lines.push(`Parsed ${parseOk}/${parseResponses.length} screenshots.`);
       if (parseFailed > 0) {
-        lines.push(`${parseFailed} parse request(s) failed. Open GP review to inspect missing records.`);
+        const failedDetails = await Promise.all(
+          parseResponses.map(async (response, index) => {
+            if (response.ok) return null;
+            const body = (await response.json().catch(() => ({}))) as { error?: string };
+            return `Parse failed for upload #${index + 1}: ${body.error ?? `HTTP ${response.status}`}`;
+          })
+        );
+        for (const detail of failedDetails.filter(Boolean)) {
+          lines.push(detail as string);
+        }
       }
     }
 
