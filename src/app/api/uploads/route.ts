@@ -1,10 +1,16 @@
 import { createHash, randomUUID } from "crypto";
 import { NextResponse } from "next/server";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const auth = await verifyAdminRequest(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const formData = await request.formData();
   const gpId = String(formData.get("gpId") ?? "").trim();
 

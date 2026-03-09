@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -12,6 +13,11 @@ const schema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ parsedResultId: string }> }) {
+  const auth = await verifyAdminRequest(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const { parsedResultId } = await params;
   const payload = schema.parse(await request.json());
   const supabase = getSupabaseServerClient();

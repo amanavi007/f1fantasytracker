@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 import { computePunishmentForGp } from "@/lib/scoring";
 import { getGpTeamScores, getLeagueSettings, getPlayers } from "@/lib/data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function POST(_: Request, { params }: { params: Promise<{ gpId: string }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ gpId: string }> }) {
+  const auth = await verifyAdminRequest(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const { gpId } = await params;
   const supabase = getSupabaseServerClient();
   const [players, gpTeamScores, settings] = await Promise.all([getPlayers(), getGpTeamScores(gpId), getLeagueSettings()]);

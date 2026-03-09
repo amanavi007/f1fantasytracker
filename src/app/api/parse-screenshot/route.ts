@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { verifyAdminRequest } from "@/lib/admin-auth";
 import { openAIVisionParse } from "@/lib/parser";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -9,6 +10,11 @@ const payloadSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = await verifyAdminRequest(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const body = await request.json();
   const payload = payloadSchema.parse(body);
   const supabase = getSupabaseServerClient();

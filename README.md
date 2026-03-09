@@ -54,6 +54,9 @@ npm run build
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STORAGE_BUCKET` (default `screenshots`)
+- `ADMIN_EMAILS` comma-separated list of admin emails for Supabase JWT checks
+- `ADMIN_API_KEY` optional server-side admin key accepted via `x-admin-api-key`
+- `STRICT_ADMIN_AUTH` set `true` to require admin auth even if no admin config is present
 - `VISION_API_BASE_URL`
 - `VISION_API_KEY`
 - `VISION_MODEL`
@@ -79,6 +82,16 @@ Run the SQL schema in your Supabase SQL editor, then wire API routes to real DB 
 	- Parse screenshots from `/upload` (Upload + Parse) or call `/api/parse-screenshot`.
 	- Review/correct in `/gps/[gpId]/review`.
 	- Save missing team scores in `/gps/[gpId]` and finalize the GP.
+
+## Admin Authorization
+
+- All write/parse/finalize endpoints now use admin verification.
+- Accepted auth methods:
+	- `x-admin-api-key: <ADMIN_API_KEY>`
+	- `Authorization: Bearer <supabase_jwt>` where the token user email is in `ADMIN_EMAILS`
+- Open mode behavior:
+	- If no admin auth config is provided and `STRICT_ADMIN_AUTH=false`, writes are allowed (useful for initial setup).
+	- Set `STRICT_ADMIN_AUTH=true` in production/private deployment to enforce admin checks.
 
 ## Current Write Endpoints
 
