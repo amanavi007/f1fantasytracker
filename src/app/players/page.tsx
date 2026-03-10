@@ -3,6 +3,9 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { PlayerCreateForm } from "@/components/player-create-form";
 import { computePunishmentBoard, getPlayers } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PlayersPage() {
   const [board, players] = await Promise.all([computePunishmentBoard(), getPlayers()]);
 
@@ -40,9 +43,6 @@ export default async function PlayersPage() {
                 </p>
                 <p>
                   Team 2: <span className="text-white">{player.team2Name}</span>
-                </p>
-                <p>
-                  Aliases: <span className="text-mutedForeground">{player.aliases.join(", ")}</span>
                 </p>
                 <p>
                   Punishments: <span className="text-accent">{row?.losses ?? 0}</span> | 2nd lasts: {row?.secondLasts ?? 0}

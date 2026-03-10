@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { computePunishmentBoard, getGpOverview, getGps, getPlayers, getPunishmentCompletions } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PunishmentsPage() {
   const [boardRaw, gps, players, completionMap] = await Promise.all([
     computePunishmentBoard(),

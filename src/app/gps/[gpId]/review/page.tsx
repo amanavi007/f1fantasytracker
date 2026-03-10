@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { getGpOverview } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function GpReviewPage({ params }: { params: Promise<{ gpId: string }> }) {
   const { gpId } = await params;
 

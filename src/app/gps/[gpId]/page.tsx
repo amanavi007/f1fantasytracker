@@ -12,6 +12,9 @@ import { AdminOnly } from "@/components/admin-only";
 import { getGpOverview } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function GpDetailPage({ params }: { params: Promise<{ gpId: string }> }) {
   const { gpId } = await params;
   const overview = await getGpOverview(gpId);

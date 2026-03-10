@@ -4,6 +4,9 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { getGpOverview, getGps } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function GpHistoryPage() {
   const gps = await getGps();
   const overviews = await Promise.all(gps.map((gp) => getGpOverview(gp.id)));

@@ -6,6 +6,9 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { getGpOverview, getGps } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DashboardPage() {
   const [gps] = await Promise.all([getGps()]);
 

@@ -1,6 +1,9 @@
 import { UploadPanel } from "@/components/upload-panel";
 import { getGps, getScreenshotUploads } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UploadPage() {
   const [gps, uploads] = await Promise.all([getGps(), getScreenshotUploads()]);
 
