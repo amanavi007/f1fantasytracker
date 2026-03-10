@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Flag, ShieldAlert } from "lucide-react";
-import { StatCard } from "@/components/stat-card";
 import { GpStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -41,20 +40,31 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-2">
-        <StatCard
-          title="Latest GP Loser"
-          value={
-            latestResult?.punishment.loserPlayerIds.length
-              ? latestResult.punishment.loserPlayerIds
-                  .map((playerId) => latestResult.players.find((p) => p.id === playerId)?.displayName ?? playerId)
-                  .join(", ")
-              : "TBD"
-          }
-          subText={latestFinalizedGp?.name ?? "No finalized GP yet"}
-          icon={<ShieldAlert />}
-        />
-        <Card>
+      <section className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-2">
+        <Card className="min-h-[220px] border-accent/35 bg-gradient-to-br from-accent/10 via-black/25 to-black/30">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-mutedForeground">Latest GP Loser</p>
+              <p className="mt-2 font-display text-4xl leading-tight tracking-wide text-white">
+                {latestResult?.punishment.loserPlayerIds.length
+                  ? latestResult.punishment.loserPlayerIds
+                      .map((playerId) => latestResult.players.find((p) => p.id === playerId)?.displayName ?? playerId)
+                      .join(", ")
+                  : "TBD"}
+              </p>
+              <p className="mt-2 text-sm text-mutedForeground">{latestFinalizedGp?.name ?? "No finalized GP yet"}</p>
+            </div>
+            <div className="text-accent">
+              <ShieldAlert />
+            </div>
+          </div>
+          <div className="mt-4 rounded-lg border border-border/70 bg-black/20 p-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-mutedForeground">Punishment Context</p>
+            <p className="mt-2 text-sm text-white">Lowest combined score (T1 + T2) receives punishment for that GP.</p>
+          </div>
+        </Card>
+
+        <Card className="min-h-[220px]">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-mutedForeground">Current GP</p>

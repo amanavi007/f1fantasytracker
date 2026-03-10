@@ -41,9 +41,11 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
           </div>
           <div className="flex items-center gap-2">
             <GpStatusBadge status={overview.gp.status} />
-            <Button variant="outline" asChild>
-              <Link href={`/gps/${gpId}/review`}>Open Parser Review</Link>
-            </Button>
+            <AdminOnly>
+              <Button variant="outline" asChild>
+                <Link href={`/gps/${gpId}/review`}>Open Parser Review</Link>
+              </Button>
+            </AdminOnly>
             <FinalizeGpButton gpId={gpId} isFinalized={overview.gp.status === "finalized"} />
           </div>
         </div>

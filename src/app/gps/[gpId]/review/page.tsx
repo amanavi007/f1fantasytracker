@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { GpWorkflowStrip } from "@/components/gp-workflow-strip";
 import { ReviewRecordCard } from "@/components/review-record-card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +10,20 @@ import { getGpOverview } from "@/lib/data";
 
 export default async function GpReviewPage({ params }: { params: Promise<{ gpId: string }> }) {
   const { gpId } = await params;
+
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("f1_admin_session")?.value;
+  const configuredApiKey = process.env.ADMIN_API_KEY;
+  const strict = process.env.STRICT_ADMIN_AUTH === "true";
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "").trim();
+  const hasConfig = Boolean(configuredApiKey || adminEmails);
+  const openMode = !hasConfig && !strict;
+  const allowed = openMode || (configuredApiKey && sessionCookie === configuredApiKey);
+
+  if (!allowed) {
+    redirect(`/gps/${gpId}`);
+  }
+
   const overview = await getGpOverview(gpId);
   if (!overview) return notFound();
 
