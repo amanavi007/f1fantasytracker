@@ -29,6 +29,12 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
     .filter((row) => row.combined !== null)
     .sort((a, b) => (a.combined ?? 0) - (b.combined ?? 0))
     .slice(0, 3);
+  const displayRows = [...overview.rows].sort((a, b) => {
+    if (a.combined === null && b.combined === null) return 0;
+    if (a.combined === null) return 1;
+    if (b.combined === null) return -1;
+    return b.combined - a.combined;
+  });
 
   return (
     <div className="space-y-6">
@@ -70,12 +76,12 @@ export default async function GpDetailPage({ params }: { params: Promise<{ gpId:
               </TR>
             </THead>
             <TBody>
-              {overview.rows.map((row) => {
+              {displayRows.map((row, index) => {
                 const isLoser = overview.punishment.loserPlayerIds.includes(row.playerId);
                 const isSecond = overview.punishment.secondLastPlayerIds.includes(row.playerId);
                 return (
                   <TR key={row.playerId} className={isLoser ? "bg-red-500/10" : ""}>
-                    <TD>{row.rank ?? "-"}</TD>
+                    <TD>{row.combined === null ? "-" : index + 1}</TD>
                     <TD>
                       <div className="flex items-center gap-2">
                         <span>{row.playerName}</span>

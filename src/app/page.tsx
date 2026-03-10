@@ -21,6 +21,13 @@ export default async function DashboardPage() {
   const featuredIndex = latestPastIndex ?? 0;
   const featuredGp = gps[featuredIndex];
   const compactRaceList = gps.filter((_, index) => index !== featuredIndex);
+  const finalizedCount = gps.filter((gp) => gp.status === "finalized").length;
+  const loserCount = latestResult?.punishment.loserPlayerIds.length ?? 0;
+  const secondLastNames = latestResult?.punishment.secondLastPlayerIds.length
+    ? latestResult.punishment.secondLastPlayerIds
+        .map((playerId) => latestResult.players.find((p) => p.id === playerId)?.displayName ?? playerId)
+        .join(", ")
+    : "TBD";
 
   return (
     <div className="space-y-6">
@@ -59,8 +66,18 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div className="mt-4 rounded-lg border border-border/70 bg-black/20 p-3">
-            <p className="text-xs uppercase tracking-[0.14em] text-mutedForeground">Punishment Context</p>
-            <p className="mt-2 text-sm text-white">Lowest combined score (T1 + T2) receives punishment for that GP.</p>
+            <p className="text-xs uppercase tracking-[0.14em] text-mutedForeground">Quick Stats</p>
+            <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+              <p className="text-mutedForeground">
+                Losers: <span className="text-white">{loserCount}</span>
+              </p>
+              <p className="text-mutedForeground">
+                Finalized GPs: <span className="text-white">{finalizedCount}</span>
+              </p>
+              <p className="text-mutedForeground">
+                2nd Last: <span className="text-white">{secondLastNames}</span>
+              </p>
+            </div>
           </div>
         </Card>
 
